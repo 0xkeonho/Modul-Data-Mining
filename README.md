@@ -9,7 +9,7 @@ Disusun oleh asisten dosen: **Danish Rafie Ekaputra** & **Yendra Wijayanto**
 | Week | Topik | Status |
 |:---:|---|:---:|
 | 1 | [Virtual Environment (venv, conda, pip)](week-01/) | DONE |
-| 2 | Data Cleaning: Missing Values & Noisy Data | - |
+| 2 | [Data Cleaning: Noisy Data dan Outlier](week-02/) | - |
 | 3 | Data Integration, Transformation, Reduction | - |
 | 4 | Dimensionality Reduction: Feature Selection | - |
 | 5 | Dimensionality Reduction: Feature Extraction | - |
