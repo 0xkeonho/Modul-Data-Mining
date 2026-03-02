@@ -11,9 +11,10 @@ Panduan lengkap untuk mendeteksi dan menangani **noisy data** dan **outlier** da
 5. [Handling Outlier](#5-handling-outlier)
 6. [Kapan Outlier Dibuang vs Dipertahankan?](#6-kapan-outlier-dibuang-vs-dipertahankan)
 7. [Dampak Cleaning pada Statistik Deskriptif](#7-dampak-cleaning-pada-statistik-deskriptif)
-8. [Ringkasan dan Cheatsheet](#8-ringkasan-dan-cheatsheet)
-9. [Tugas dan Latihan](#9-tugas-dan-latihan)
-10. [Referensi](#10-referensi)
+8. [Data Cleaning sebagai Proses](#8-data-cleaning-sebagai-proses)
+9. [Ringkasan dan Cheatsheet](#9-ringkasan-dan-cheatsheet)
+10. [Tugas dan Latihan](#10-tugas-dan-latihan)
+11. [Referensi](#11-referensi)
 
 ---
 
@@ -25,9 +26,9 @@ Pada mata kuliah **Teknik Sampling dan Data Wrangling** (Modul 5), kalian sudah 
 
 | Jenis | Penjelasan | Contoh |
 |---|---|---|
-| MCAR (Missing Completely at Random) | Kehilangan data tidak terkait variabel manapun | Sensor mati karena listrik padam |
-| MAR (Missing at Random) | Kehilangan terkait variabel lain yang terobservasi | Mahasiswa malas isi survei jika IPK rendah |
-| MNAR (Missing Not at Random) | Kehilangan terkait nilai yang hilang itu sendiri | Orang berpenghasilan tinggi tidak mengisi kolom gaji |
+| MCAR (Missing Completely at Random) | Data hilang secara acak total — tidak ada pola, murni kebetulan | Sensor mati karena listrik padam |
+| MAR (Missing at Random) | Data hilang karena dipengaruhi variabel lain yang kita punya | Mahasiswa malas isi survei jika IPK rendah |
+| MNAR (Missing Not at Random) | Data hilang justru karena nilai itu sendiri — ada alasan tersembunyi | Orang berpenghasilan tinggi tidak mengisi kolom gaji |
 
 ### Flowchart Penanganan
 
@@ -56,6 +57,8 @@ graph TD
 Jangan lupa cek duplikat juga: `df.duplicated().sum()` lalu `df.drop_duplicates()`.
 
 > **Catatan**: Detail tentang missing values — deteksi dengan `missingno`, KNN Imputer, MICE/IterativeImputer, perbandingan visual antar metode imputasi — sudah dibahas lengkap di materi Teknik Sampling dan Data Wrangling (Modul 5). Materi ini tidak mengulang topik tersebut.
+
+> **Awas: Disguised Missing Data** — Tidak semua missing values tampil sebagai `NaN`. Kadang user sengaja mengisi data palsu pada field wajib karena tidak ingin memberikan informasi pribadi — misalnya memilih tanggal lahir default "1 Januari 2000" atau mengisi pendapatan "0". Data seperti ini terlihat valid secara format, tapi sebenarnya tidak informatif. Gunakan domain knowledge dan cek distribusi untuk mendeteksinya (Han et al., 2023).
 
 ---
 
@@ -265,6 +268,8 @@ Modified Z-score berhasil mendeteksi **kedua outlier** yang dilewatkan oleh Z-sc
 
 > **Tips**: Jika ragu, mulai dengan **Modified Z-score** atau **IQR**. Z-score biasa hanya reliable jika datanya besar (n > 100) dan distribusinya mendekati normal.
 
+![Perbandingan Metode Deteksi Outlier](figures/04_perbandingan_deteksi.png)
+
 ### 3.5 Metode Visual
 
 Selain metode statistik, visualisasi membantu mengidentifikasi outlier secara intuitif.
@@ -286,6 +291,8 @@ plt.show()
 
 Pada boxplot, titik-titik di luar whisker adalah outlier. Dalam contoh di atas, nilai 42 dan 100 akan muncul sebagai titik terpisah di sebelah kanan whisker.
 
+![Boxplot — Deteksi Outlier](figures/01_boxplot_outlier.png)
+
 #### Histogram
 
 Histogram menunjukkan distribusi frekuensi. Outlier terlihat sebagai bar yang terisolasi jauh dari kelompok utama.
@@ -299,6 +306,8 @@ ax.set_title("Histogram — Distribusi Data")
 plt.tight_layout()
 plt.show()
 ```
+
+![Histogram — Distribusi Data](figures/02_histogram_distribusi.png)
 
 #### Scatter Plot
 
@@ -320,7 +329,11 @@ plt.tight_layout()
 plt.show()
 ```
 
+![Scatter Plot — Identifikasi Outlier dengan Batas IQR](figures/03_scatter_iqr.png)
+
 > **Tips**: Dalam praktik, gunakan **kombinasi** metode statistik dan visual. Metode statistik memberikan threshold yang objektif, sedangkan visual membantu memahami *konteks* dan *pola* outlier.
+
+> **Metode lain**: Selain metode statistik di atas, outlier juga bisa dideteksi menggunakan **clustering** — nilai yang tidak termasuk dalam cluster manapun dianggap sebagai outlier (Han et al., 2023). Teknik ini akan dibahas lebih lanjut di materi Unsupervised Learning (Week 9-10).
 
 <details>
 <summary><b>Cek Pemahaman</b>: Mengapa Z-score bisa gagal mendeteksi outlier pada dataset kecil?</summary>
@@ -479,6 +492,10 @@ for i, b in enumerate(bins):
 
 > **Tips**: Smoothing by bin means paling sering digunakan karena menghasilkan rata-rata yang representatif. Smoothing by boundaries mempertahankan variasi ekstrem dalam bin dan lebih jarang digunakan.
 
+![Binning dan Smoothing](figures/08_binning_smoothing.png)
+
+> **Metode smoothing lain**: Selain binning, **regression** juga bisa digunakan untuk smoothing — data difit ke sebuah fungsi (misalnya garis linear) sehingga noise berkurang. Linear regression memodelkan hubungan dua variabel, sedangkan multiple linear regression melibatkan lebih dari dua variabel (Han et al., 2023). Regression dibahas lebih detail di materi Supervised Learning.
+
 <details>
 <summary><b>Cek Pemahaman</b>: Apa perbedaan utama antara equal-width dan equal-frequency binning?</summary>
 
@@ -545,6 +562,8 @@ Sesudah: 8 data -> [15 18 19 20 21 22 22 25]
 
 > **Penting**: Trimming mengurangi ukuran dataset. Jika outlier banyak, trimming bisa menghapus terlalu banyak data dan membuat model kehilangan informasi. Gunakan dengan hati-hati.
 
+![Perbandingan: Original vs Capping vs Trimming](figures/06_capping_vs_trimming.png)
+
 ### 5.3 Transformasi
 
 Transformasi mengubah skala data sehingga distribusi menjadi lebih simetris dan outlier tidak terlalu dominan. Data **tidak dihapus** — hanya skalanya yang berubah.
@@ -605,6 +624,8 @@ print("Box-Cox:", np.round(data_boxcox, 2))
 | Square Root | Data sedikit skewed | Nilai >= 0 |
 | Box-Cox | Tidak tahu transformasi terbaik | Nilai > 0 (strictly positive) |
 
+![Perbandingan Transformasi](figures/05_transformasi_comparison.png)
+
 > **Catatan**: Setelah transformasi, jangan lupa bahwa interpretasi berubah — misalnya, model regresi pada data log menghasilkan koefisien dalam skala log, bukan skala asli. Untuk mengembalikan ke skala asli, gunakan `np.expm1()` (kebalikan `log1p`).
 
 ---
@@ -650,7 +671,7 @@ Sebelum menghapus outlier, tanyakan:
 
 ### Dimensi Kualitas Data
 
-Saat mengevaluasi apakah suatu data perlu dibersihkan, pertimbangkan empat dimensi kualitas data:
+Saat mengevaluasi apakah suatu data perlu dibersihkan, pertimbangkan enam dimensi kualitas data (Han et al., 2023):
 
 | Dimensi | Pertanyaan | Contoh Masalah |
 |---|---|---|
@@ -658,6 +679,8 @@ Saat mengevaluasi apakah suatu data perlu dibersihkan, pertimbangkan empat dimen
 | **Completeness** | Apakah semua field terisi? | Kolom email kosong 60% |
 | **Consistency** | Apakah format/nilai konsisten? | Tanggal campur DD/MM dan MM/DD |
 | **Timeliness** | Apakah data masih relevan? | Harga 2019 untuk analisis 2024 |
+| **Believability** | Apakah data dipercaya pengguna? | Database pernah error, user tidak percaya walau sudah diperbaiki |
+| **Interpretability** | Apakah data mudah dipahami? | Kode akuntansi yang tidak dimengerti tim sales |
 
 ---
 
@@ -691,6 +714,8 @@ print(data_clean.describe())
 | **Median** | 21.50 | 21.50 | Tetap |
 | **Max** | 100.00 | 31.75 | Turun (di-cap) |
 
+![Dampak Cleaning pada Statistik Deskriptif](figures/07_dampak_cleaning.png)
+
 Poin penting:
 
 - **Mean** sangat terpengaruh outlier (turun 26%), sedangkan **median** tidak berubah
@@ -701,7 +726,21 @@ Poin penting:
 
 ---
 
-## 8. Ringkasan dan Cheatsheet
+## 8. Data Cleaning sebagai Proses
+
+Data cleaning bukan langkah sekali jalan — melainkan proses **iteratif** yang terdiri dari dua tahap utama (Han et al., 2023):
+
+1. **Discrepancy detection** — Temukan inkonsistensi, error, dan anomali dalam data. Manfaatkan **metadata** (informasi tentang data: tipe, domain, range yang valid) dan statistik deskriptif (mean, median, std, range) untuk mengidentifikasi masalah.
+
+2. **Data transformation** — Setelah masalah ditemukan, terapkan transformasi untuk memperbaikinya (misalnya: format tanggal yang tidak konsisten, kode yang berbeda antar sumber data).
+
+Kedua tahap ini **berulang** — transformasi bisa memunculkan masalah baru (*nested discrepancies*). Misalnya, setelah semua tanggal dikonversi ke format seragam, baru terlihat bahwa ada typo "20010" pada field tahun.
+
+> **Pesan utama**: Cleaning data itu iteratif dan membutuhkan kesabaran. Jangan berharap satu kali pass sudah cukup. Dokumentasikan setiap langkah transformasi agar bisa di-reproduce dan di-audit.
+
+---
+
+## 9. Ringkasan dan Cheatsheet
 
 ### Metode Deteksi — Kapan Pakai Apa?
 
@@ -763,9 +802,7 @@ df["col_binned"] = pd.qcut(df["col"], q=5, labels=False)
 
 ---
 
-## 9. Tugas dan Latihan
-
-> Tugas praktik akan menggunakan dataset yang dibahas di sesi demo (notebook). Detail tugas akan ditambahkan setelah dataset dipilih.
+## 10. Tugas dan Latihan
 
 ### Latihan Konseptual
 
@@ -779,13 +816,31 @@ df["col_binned"] = pd.qcut(df["col"], q=5, labels=False)
 
 5. Kapan sebaiknya kamu menggunakan **capping** dibanding **trimming** untuk menangani outlier? Sebutkan kelebihan dan kekurangan masing-masing.
 
+### Latihan Praktik (Dataset: Pima Indians Diabetes)
+
+Gunakan dataset `diabetes.csv` yang tersedia di folder `demo/`. Lihat notebook `Data-Cleaning-Demo.ipynb` sebagai referensi.
+
+6. Kolom `Insulin` memiliki 374 nilai 0 (48.7% dari total data). Bandingkan hasil imputasi menggunakan **mean** vs **median** — mana yang lebih tepat untuk kolom ini? Jelaskan alasanmu berdasarkan distribusi data.
+
+7. Terapkan ketiga metode deteksi outlier (IQR, Z-Score, Modified Z-Score) pada kolom `BMI`. Bandingkan jumlah outlier yang terdeteksi oleh masing-masing metode dan jelaskan mengapa hasilnya berbeda.
+
+8. Lakukan **equal-frequency binning** pada kolom `Age` menjadi 4 bin. Kemudian terapkan smoothing by bin means. Tampilkan distribusi data sebelum dan sesudah smoothing menggunakan histogram.
+
+9. Bandingkan dampak **capping** vs **log transformation** pada kolom `Insulin` terhadap statistik deskriptif (mean, std, median, skewness). Metode mana yang lebih sesuai jika data akan digunakan untuk model klasifikasi?
+
+10. Buat pipeline data cleaning lengkap untuk dataset Pima Indians Diabetes:
+    - Identifikasi dan tangani disguised missing values
+    - Deteksi outlier pada minimal 3 kolom
+    - Terapkan handling yang sesuai untuk setiap kolom
+    - Tampilkan tabel perbandingan statistik deskriptif sebelum dan sesudah cleaning
+
 ---
 
-## 10. Referensi
+## 11. Referensi
 
 ### Buku Teks
 
-- Han, J., Kamber, M. & Pei, J. (2023). *Data Mining: Concepts and Techniques*. 4th ed. Chapter 3: Data Preprocessing. Morgan Kaufmann.
+- Han, J., Kamber, M. & Pei, J. (2023). *Data Mining: Concepts and Techniques*. 4th ed. Chapter 2: Data, Measurements, and Data Preprocessing. Morgan Kaufmann.
 - Tan, P.-N., Steinbach, M. & Kumar, V. (2005). *Introduction to Data Mining*. Chapter 2: Data. Wiley.
 
 ### Paper

@@ -42,3 +42,9 @@ rps/rps-md/
 *.env
 credentials.json
 notes.md
+
+# Quizizz (internal draft, push hanya jika diminta)
+**/quizizz/
+
+# Books (too large for git)
+books/

@@ -31,8 +31,11 @@ asdos-datmin/
 │   ├── README.md                       # Overview week 2
 │   ├── Data-Cleaning.md                # Materi noisy data & outlier
 │   ├── quizizz/
-│   │   └── Recap-Missing-Values.md     # Pre-class quiz (15 soal)
-│   └── demo/                           # (pending dataset selection)
+│   │   └── Recap-Missing-Values.md     # Pre-class quiz (22 soal)
+│   ├── figures/                        # Visualisasi (8 PNG, plain matplotlib)
+│   └── demo/
+│       ├── Data-Cleaning-Demo.ipynb    # Notebook demo (52 cells)
+│       └── diabetes.csv               # Pima Indians Diabetes dataset
 └── ...
 ```
 
@@ -45,6 +48,8 @@ asdos-datmin/
 - **Contoh code**: Harus practical dan tested (bukan pseudocode)
 - **Setiap week punya**: `README.md` (overview) + materi + demo/
 - **Emoji**: Jangan pakai emoji di file `.md`
+- **Git push**: Jangan push ke GitHub kecuali diminta secara eksplisit oleh user
+- **Gitignore tambahan**: Folder `quizizz/` tidak di-push (internal draft)
 
 ## Kurikulum
 
@@ -124,9 +129,26 @@ asdos-datmin/
   - 3 colored Mermaid flowcharts (missing values, binning, outlier decision)
   - All code examples verified — found and fixed 2 bugs (equal-width bin counts, dampak statistik deskriptif)
 - Created `week-02/README.md` — week overview
-- Created `week-02/quizizz/Recap-Missing-Values.md` — 15 soal pre-class quiz (8 recap + 7 preview)
+- Created `week-02/quizizz/Recap-Missing-Values.md` — 22 soal pre-class quiz (8 recap + 14 preview)
 - Updated root `README.md` — linked Week 2
 - Updated `AGENTS.md` — session history
+- Added `**/quizizz/` and `books/` to `.gitignore`
+- Generated 8 figure PNGs (plain matplotlib) for Data-Cleaning.md — `week-02/figures/`
+- Cross-referenced Data-Cleaning.md with Han et al. Ch.2 — found and applied 5 gaps
+- Improved MCAR/MAR/MNAR descriptions per user feedback
+- Downloaded Pima Indians Diabetes dataset via Kaggle CLI → `week-02/demo/diabetes.csv`
+- Created `week-02/demo/Data-Cleaning-Demo.ipynb` — 49 cells (26 markdown, 23 code), all verified
+  - Covers: disguised missing values, median imputasi, IQR/Z-Score/Modified Z-Score detection, boxplot/histogram/scatter, binning & smoothing, capping/trimming/transformasi, dampak cleaning
+- Updated Data-Cleaning.md Section 10: added 5 practical exercises referencing Pima dataset
+- Updated `week-02/README.md` with demo notebook reference
+
+### Session 2026-03-02 (sesi 5)
+- Applied 4 markdown improvements to `week-02/demo/Data-Cleaning-Demo.ipynb` (total 52 cells: 29 markdown, 23 code)
+  - Added teaching note after IQR result: 45.1% outlier rate explained by median imputation compressing IQR
+  - Added insight after comparison table: why IQR/Modified Z-Score detect more than Z-Score for skewed data
+  - Changed Section 7.2 title: "Smoothing by Bin Means" → "Demonstrasi Smoothing" (covers all 3 methods)
+  - Added warning after trimming: 45.1% removal is too aggressive, recommend capping/transformasi instead
+- Updated `AGENTS.md` with session history
 
 ## Tips & Gotchas
 - `conda env export` default includes platform-specific builds. Use `--no-builds` for cross-OS sharing
