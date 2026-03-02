@@ -46,5 +46,9 @@ notes.md
 # Quizizz (internal draft, push hanya jika diminta)
 **/quizizz/
 
+# Notebook WIP dari kontributor (internal)
+week-02/General_ML_Workflow.ipynb
+week-02/noisydata_exercise.ipynb
+
 # Books (too large for git)
 books/
