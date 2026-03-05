@@ -11,7 +11,7 @@ Pengenalan virtual environment di Python menggunakan **venv** dan **conda**, ser
 | [`Slide-Introduction-Data-Mining.pdf`](Slide-Introduction-Data-Mining.pdf) | Slide presentasi praktikum (referensi asdos sebelumnya) |
 | [`slide-content.md`](slide-content.md) | Konten slide dalam format markdown |
 
-## Demo
+## Praktikum
 
 Linear Regression demo menggunakan NumPy, pandas, scikit-learn, dan matplotlib.
 
@@ -19,13 +19,13 @@ Linear Regression demo menggunakan NumPy, pandas, scikit-learn, dan matplotlib.
 # Dengan venv
 python3 -m venv myenv
 source myenv/bin/activate
-pip install -r demo/requirements.txt
-python demo/demo.py
+pip install -r praktikum/requirements.txt
+python praktikum/demo.py
 
 # Dengan conda
-conda env create -f demo/environment.yml
+conda env create -f praktikum/environment.yml
 conda activate datmin
-python demo/demo.py
+python praktikum/demo.py
 ```
 
 ## Topik yang Dibahas

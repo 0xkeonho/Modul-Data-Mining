@@ -818,7 +818,7 @@ df["col_binned"] = pd.qcut(df["col"], q=5, labels=False)
 
 ### Latihan Praktik (Dataset: Pima Indians Diabetes)
 
-Gunakan dataset `diabetes.csv` yang tersedia di folder `demo/`. Lihat notebook `Data-Cleaning-Demo.ipynb` sebagai referensi.
+Gunakan dataset `diabetes.csv` yang tersedia di folder `praktikum/`. Lihat notebook `Data-Cleaning.ipynb` sebagai referensi.
 
 6. Kolom `Insulin` memiliki 374 nilai 0 (48.7% dari total data). Bandingkan hasil imputasi menggunakan **mean** vs **median** — mana yang lebih tepat untuk kolom ini? Jelaskan alasanmu berdasarkan distribusi data.
 
