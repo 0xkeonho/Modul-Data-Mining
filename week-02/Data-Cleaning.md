@@ -82,6 +82,8 @@ Jangan lupa cek duplikat juga: `df.duplicated().sum()` lalu `df.drop_duplicates(
 
 **Noise** (data kotor/berisik) adalah kesalahan atau variasi acak dalam data yang **tidak membawa informasi berguna**. Noise mengaburkan pola sebenarnya dan bisa menyesatkan analisis maupun model machine learning.
 
+![Ilustrasi Noisy Data](figures/00_ilustrasi_noisy_data.jpeg)
+
 Contoh noise dalam kehidupan nyata:
 
 - Umur tercatat **-5 tahun** (tidak mungkin)
