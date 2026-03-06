@@ -1,6 +1,16 @@
 # Visualisasi Data Multivariat: t-SNE
 
-Panduan lengkap untuk memahami dan menggunakan **t-SNE** (t-distributed Stochastic Neighbor Embedding) sebagai teknik visualisasi data berdimensi tinggi. Materi ini mencakup teori, parameter tuning, interpretasi yang benar, dan praktik langsung menggunakan scikit-learn.
+Memahami dan menggunakan **t-SNE** (t-distributed Stochastic Neighbor Embedding) untuk visualisasi high-dimensional data ke 2D.
+
+## Tujuan Pembelajaran
+
+Setelah mempelajari materi ini, mahasiswa diharapkan mampu:
+
+- Menjelaskan mengapa visualisasi multivariat diperlukan
+- Memahami cara kerja t-SNE secara konseptual (Gaussian similarity, t-Student distribution, KL divergence)
+- Membedakan t-SNE dan PCA serta kapan menggunakan masing-masing
+- Mengatur parameter t-SNE (perplexity, learning rate, max_iter) dengan tepat
+- Menginterpretasikan hasil t-SNE dengan benar dan menghindari kesalahan umum
 
 ## Daftar Isi
 
@@ -29,18 +39,18 @@ Dalam data science, kita sering bekerja dengan dataset yang memiliki **banyak fi
 | MNIST | 784 | Piksel gambar angka 28x28 |
 | Gene expression | 20.000+ | Ekspresi gen dari sampel jaringan |
 
-Manusia hanya bisa memvisualisasikan data dalam **2D atau 3D**. Scatter plot biasa hanya bisa menampilkan 2-3 variabel sekaligus. Bagaimana jika data kita memiliki 64 fitur? Atau 784? Kita tidak bisa membuat scatter plot 64 dimensi.
+Manusia hanya bisa memvisualisasikan data di **2D atau 3D**. Scatter plot biasa cuma bisa menampilkan 2-3 variabel sekaligus. Bagaimana kalau data kita punya 64 fitur? Atau 784? Kita tidak bisa bikin scatter plot 64 dimensi.
 
-Di sinilah teknik **dimensionality reduction untuk visualisasi** diperlukan. Tujuannya: merepresentasikan data berdimensi tinggi ke dalam **2 dimensi** sehingga bisa divisualisasikan, sambil **mempertahankan struktur** data aslinya semaksimal mungkin.
+Di sinilah teknik **dimensionality reduction untuk visualisasi** diperlukan. Tujuannya: merepresentasikan high-dimensional data ke **2 dimensi** yang bisa divisualisasikan, sambil **mempertahankan struktur** aslinya semaksimal mungkin.
 
 Dua teknik populer untuk ini:
 
-- **PCA** (Principal Component Analysis) — proyeksi linear, menjaga variansi global
-- **t-SNE** — embedding non-linear, menjaga kedekatan lokal antar titik data
+- **PCA** (Principal Component Analysis) — linear projection, preserves global variance
+- **t-SNE** — non-linear embedding, preserves local structure
 
 Materi ini fokus pada **t-SNE**. Detail tentang PCA dibahas di materi terpisah.
 
-> **Catatan**: Dimensionality reduction untuk visualisasi berbeda dengan dimensionality reduction untuk feature engineering (Week 4-5). Pada visualisasi, output selalu 2D/3D dan tujuannya memahami data secara visual — bukan mengurangi fitur untuk model.
+> **Catatan**: Dimensionality reduction untuk visualisasi berbeda dengan untuk feature engineering (Week 4-5). Untuk visualisasi, output selalu 2D/3D dan tujuannya memahami data secara visual — bukan reduce fitur untuk model.
 
 ---
 
@@ -50,14 +60,14 @@ Materi ini fokus pada **t-SNE**. Detail tentang PCA dibahas di materi terpisah.
 
 ### Tujuan Utama
 
-t-SNE dirancang khusus untuk **visualisasi** data berdimensi tinggi ke 2D atau 3D. Algoritma ini sangat baik dalam mempertahankan **struktur lokal** — artinya titik-titik data yang berdekatan di ruang dimensi tinggi akan tetap berdekatan di hasil visualisasi 2D.
+t-SNE dirancang khusus untuk **visualisasi** high-dimensional data ke 2D atau 3D. Algoritma ini sangat baik dalam mempertahankan **local structure** — artinya data points yang berdekatan di high-dimensional space akan tetap berdekatan di 2D.
 
 ### Kapan Menggunakan t-SNE?
 
 - **Eksplorasi awal** — Melihat apakah ada klaster alami dalam data
 - **Validasi visual** — Memverifikasi apakah label kelas memang terpisah di feature space
 - **Presentasi** — Menampilkan struktur data kompleks secara intuitif
-- **Debugging model** — Memeriksa apakah representasi fitur sudah baik
+- **Debugging model** — Memeriksa apakah feature representation sudah baik
 
 ### Contoh Penggunaan di Industri
 
@@ -66,12 +76,16 @@ t-SNE dirancang khusus untuk **visualisasi** data berdimensi tinggi ke 2D atau 3
 - Computer Vision: visualisasi fitur dari layer terakhir neural network
 - Cybersecurity: deteksi anomali pada network traffic
 
-> **Penting**: t-SNE adalah alat **visualisasi**, bukan preprocessing. Hasil t-SNE (2 komponen) **tidak boleh** digunakan sebagai fitur input untuk model machine learning. Kenapa? Karena t-SNE tidak memiliki fungsi `transform()` untuk data baru — hasilnya tergantung pada seluruh dataset dan parameter saat fitting.
+> **Penting**: t-SNE adalah alat **visualisasi**, bukan preprocessing:
+>
+> - Hasil t-SNE **tidak boleh** digunakan sebagai input features untuk model ML
+> - Tidak punya `transform()` — hasilnya tergantung seluruh dataset saat fitting
+> - Bersifat **transductive**, bukan **inductive**
 
 <details>
 <summary><b>Cek Pemahaman</b>: Mengapa t-SNE cocok untuk visualisasi tapi tidak untuk preprocessing model?</summary>
 
-t-SNE menghasilkan embedding yang tergantung pada seluruh dataset (transductive, bukan inductive). Tidak ada cara untuk men-transform data baru tanpa menjalankan ulang seluruh algoritma. Selain itu, t-SNE mempertahankan struktur lokal tapi bisa mendistorsi jarak global, sehingga interpretasi geometris dari hasilnya terbatas.
+t-SNE menghasilkan embedding yang tergantung pada seluruh dataset (transductive, bukan inductive). Tidak ada cara untuk transform data baru tanpa menjalankan ulang seluruh algoritma. Selain itu, t-SNE mempertahankan local structure tapi bisa mendistorsi global distances, sehingga interpretasi geometris dari hasilnya terbatas.
 
 </details>
 
@@ -84,25 +98,43 @@ Sebelum mendalami t-SNE, penting memahami perbedaannya dengan PCA agar tahu kapa
 | Aspek | PCA | t-SNE |
 |---|---|---|
 | Jenis transformasi | **Linear** | **Non-linear** |
-| Yang dipertahankan | Variansi global (arah variasi terbesar) | Kedekatan lokal (tetangga terdekat) |
-| Kecepatan | Cepat (dekomposisi matriks) | Lambat (optimisasi iteratif) |
-| Deterministik | Ya (hasil selalu sama) | Tidak (hasil bisa bervariasi tiap run) |
+| Yang dipertahankan | Global variance (arah variasi terbesar) | Local proximity (nearest neighbors) |
+| Speed | Cepat (matrix decomposition) | Lambat (iterative optimization) |
+| Deterministic | Ya (hasil selalu sama) | Tidak (hasil bisa beda tiap run) |
 | Scalability | Sangat baik (jutaan data) | Terbatas (~10.000-50.000 data) |
-| Interpretasi komponen | Bisa (loading = kontribusi fitur) | Tidak bisa (sumbu tidak bermakna) |
-| Cocok untuk | Overview global, preprocessing | Eksplorasi klaster, visualisasi detail |
+| Interpretasi komponen | Bisa (loading = feature contribution) | Tidak bisa (axis tidak bermakna) |
+| Cocok untuk | Global overview, preprocessing | Cluster exploration, detailed visualization |
 
 ### Analogi
 
 Bayangkan kamu ingin membuat peta 2D dari permukaan bumi (3D):
 
-- **PCA** seperti proyeksi peta Mercator — mempertahankan bentuk global tapi mendistorsi ukuran (Greenland terlihat sebesar Afrika)
-- **t-SNE** seperti membuat peta kota per kota — setiap kota akurat secara internal, tapi jarak antar kota bisa tidak proporsional
+- **PCA** seperti proyeksi peta Mercator — preserves global shape tapi distorts ukuran (Greenland terlihat sebesar Afrika)
+- **t-SNE** seperti bikin peta kota per kota — setiap kota akurat secara internal, tapi jarak antar kota bisa tidak proporsional
 
 ### Kapan Pakai yang Mana?
 
-- Ingin **overview cepat** dan interpretable? Gunakan PCA
-- Ingin **melihat klaster dan struktur lokal** dengan detail? Gunakan t-SNE
-- Dalam praktik: sering digunakan **keduanya** — PCA untuk overview, t-SNE untuk detail
+- Perlu **quick overview** yang interpretable? → PCA
+- Perlu **lihat clusters dan local structure** dengan detail? → t-SNE
+- Dalam praktik: sering pakai **keduanya** — PCA untuk overview, t-SNE untuk detail
+
+### Perbedaan Matematis
+
+**PCA** mencari proyeksi linear yang memaksimalkan variansi:
+
+$$C = \frac{1}{n} X^T X \quad \text{(matriks kovarians)}$$
+
+$$C w_k = \lambda_k w_k \quad \text{(eigendecomposition: cari eigenvector } w_k \text{ dan eigenvalue } \lambda_k\text{)}$$
+
+$$X_{\text{projected}} = X \cdot W \quad \text{(proyeksi data ke dimensi rendah)}$$
+
+Hasil fitting PCA = matriks $W$ (set of eigenvectors). $W$ **disimpan** → data baru tinggal dikalikan $W$ → **inductive** (punya `transform()`).
+
+**t-SNE** mencari posisi 2D yang meminimalkan perbedaan distribusi kemiripan:
+
+$$\min_{Y} \; KL(P \| Q) = \sum_{i \neq j} p_{ij} \log \frac{p_{ij}}{q_{ij}}$$
+
+Hasil fitting t-SNE = positions $Y$ itu sendiri. **Tidak ada parameter** yang disimpan → data baru tidak bisa di-transform tanpa compute ulang → **transductive** (hanya `fit_transform()`).
 
 > **Catatan**: Detail tentang PCA — teori eigenvalue, explained variance ratio, scree plot, implementasi — dibahas di materi terpisah oleh asisten dosen lain. Materi ini fokus pada t-SNE.
 
@@ -112,50 +144,52 @@ Bayangkan kamu ingin membuat peta 2D dari permukaan bumi (3D):
 
 t-SNE bekerja dalam **empat langkah utama**. Berikut penjelasan konseptual beserta rumus kuncinya.
 
-### Langkah 1: Hitung Kemiripan di Dimensi Tinggi
+### Step 1: Compute Similarity in High-Dimensional Space
 
-Untuk setiap pasangan titik data $x_i$ dan $x_j$, t-SNE menghitung **conditional probability** $p_{j|i}$ yang merepresentasikan seberapa mirip $x_j$ dengan $x_i$:
+Untuk setiap pasangan data points, t-SNE menghitung **similarity** berdasarkan jarak:
+
+- Points yang **dekat** → similarity score ($p_{ij}$) **tinggi**
+- Points yang **jauh** → similarity score ($p_{ij}$) **rendah**
+- $\sigma_i$ ditentukan oleh parameter **perplexity** (Section 5)
+
+**Rumus:**
 
 $$p_{j|i} = \frac{\exp\left(-\|x_i - x_j\|^2 / 2\sigma_i^2\right)}{\sum_{k \neq i} \exp\left(-\|x_i - x_k\|^2 / 2\sigma_i^2\right)}$$
 
-- Jika $x_j$ dekat dengan $x_i$, maka $p_{j|i}$ tinggi
-- Jika $x_j$ jauh dari $x_i$, maka $p_{j|i}$ rendah
-- $\sigma_i$ ditentukan oleh parameter **perplexity** (dijelaskan di Section 5)
+Lalu di-symmetrize: $p_{ij} = \frac{p_{j|i} + p_{i|j}}{2N}$
 
-Kemudian kemiripan dijadikan simetris:
+### Step 2: Initialize Positions in Low-Dimensional Space
 
-$$p_{ij} = \frac{p_{j|i} + p_{i|j}}{2N}$$
+Data points diberi posisi awal di 2D. Secara default, scikit-learn pakai hasil **PCA** sebagai inisialisasi (`init='pca'`), yang memberikan starting point lebih stabil daripada random positions.
 
-### Langkah 2: Inisialisasi Posisi di Dimensi Rendah
+### Step 3: Compute Similarity in Low-Dimensional Space
 
-Titik-titik data diberi posisi awal di 2D. Secara default, scikit-learn menggunakan hasil **PCA** sebagai inisialisasi (`init='pca'`), yang memberikan starting point yang lebih stabil dibanding posisi acak.
+Untuk posisi 2D, t-SNE menggunakan **t-Student distribution** (bukan Gaussian). Kenapa? t-Student punya **heavier tails** — data points yang berjauhan mendapat lebih banyak "ruang" di 2D, mengatasi *crowding problem*.
 
-### Langkah 3: Hitung Kemiripan di Dimensi Rendah
-
-Untuk posisi 2D $y_i$ dan $y_j$, t-SNE menggunakan **distribusi t-Student** (bukan Gaussian) untuk menghitung kemiripan:
+**Rumus:**
 
 $$q_{ij} = \frac{(1 + \|y_i - y_j\|^2)^{-1}}{\sum_{k \neq l} (1 + \|y_k - y_l\|^2)^{-1}}$$
 
-Mengapa t-Student dan bukan Gaussian? Distribusi t-Student memiliki **ekor lebih tebal** (*heavier tails*) yang memungkinkan titik-titik yang berjauhan di dimensi tinggi untuk **lebih terpisah** di 2D. Ini mengatasi *crowding problem* — fenomena di mana terlalu banyak titik berdesakan di tengah jika menggunakan Gaussian.
+### Step 4: Minimize KL Divergence
 
-### Langkah 4: Minimisasi KL Divergence
+t-SNE mengoptimasi posisi 2D dengan meminimalkan **KL divergence** — mengukur seberapa berbeda similarity distribution di high-dimensional space ($P$) vs low-dimensional space ($Q$). Optimasi dilakukan secara iteratif menggunakan **gradient descent**.
 
-t-SNE mengoptimisasi posisi 2D ($y_i$) dengan meminimisasi **Kullback-Leibler divergence** antara distribusi dimensi tinggi ($P$) dan dimensi rendah ($Q$):
+**Rumus:**
 
 $$KL(P \| Q) = \sum_{i \neq j} p_{ij} \log \frac{p_{ij}}{q_{ij}}$$
 
-Optimisasi dilakukan menggunakan **gradient descent**. Semakin kecil nilai KL divergence, semakin baik representasi 2D mempertahankan struktur kemiripan dari dimensi tinggi.
+Semakin kecil KL divergence = semakin baik representasi 2D.
 
 ### Ringkasan Visual
 
 ```mermaid
 graph LR
-    A["Data dimensi tinggi<br>(N x D)"] --> B["Hitung kemiripan<br>p_ij (Gaussian)"]
-    B --> C["Inisialisasi posisi 2D<br>(PCA / random)"]
-    C --> D["Hitung kemiripan<br>q_ij (t-Student)"]
-    D --> E["Minimisasi<br>KL(P || Q)"]
-    E -->|"Iterasi"| D
-    E -->|"Konvergen"| F["Hasil visualisasi<br>2D"]
+    A["High-dimensional data<br>(N x D)"] --> B["Compute similarity<br>p_ij (Gaussian)"]
+    B --> C["Initialize 2D positions<br>(PCA / random)"]
+    C --> D["Compute similarity<br>q_ij (t-Student)"]
+    D --> E["Minimize<br>KL(P || Q)"]
+    E -->|"Iterate"| D
+    E -->|"Converged"| F["2D visualization"]
 
     style A fill:#e8daef,stroke:#8e44ad,color:#2c3e50
     style B fill:#d6eaf8,stroke:#2980b9,color:#2c3e50
@@ -165,12 +199,12 @@ graph LR
     style F fill:#d5f5e3,stroke:#27ae60,color:#2c3e50
 ```
 
-> **Tips**: Kamu tidak perlu menghafal rumus-rumus di atas. Yang penting dipahami adalah **intuisi**: t-SNE berusaha agar titik-titik yang berdekatan di ruang asli tetap berdekatan di 2D, dan yang berjauhan tetap berjauhan.
+> **Tips**: Tidak perlu menghafal rumus-rumus di atas. Yang penting dipahami adalah **intuisinya**: t-SNE berusaha agar data points yang berdekatan di original space tetap berdekatan di 2D, dan yang berjauhan tetap berjauhan.
 
 <details>
 <summary><b>Cek Pemahaman</b>: Mengapa t-SNE menggunakan distribusi t-Student di dimensi rendah, bukan Gaussian?</summary>
 
-Distribusi t-Student memiliki ekor yang lebih tebal (heavier tails) dibanding Gaussian. Ini berarti titik-titik yang cukup berjauhan di dimensi tinggi mendapat "ruang" lebih lebar di 2D, sehingga klaster terpisah lebih jelas. Tanpa ini, banyak titik akan menumpuk di tengah karena volume ruang 2D jauh lebih kecil dari dimensi tinggi (crowding problem).
+t-Student distribution punya heavier tails dibanding Gaussian. Artinya, data points yang cukup berjauhan di high-dimensional space mendapat lebih banyak "ruang" di 2D, sehingga clusters terpisah lebih jelas. Tanpa ini, banyak points akan menumpuk di tengah karena volume 2D jauh lebih kecil dari high-dimensional space (crowding problem).
 
 </details>
 
@@ -178,7 +212,7 @@ Distribusi t-Student memiliki ekor yang lebih tebal (heavier tails) dibanding Ga
 
 ## 5. Parameter t-SNE
 
-Memahami parameter t-SNE sangat penting karena hasilnya **sangat sensitif** terhadap pemilihan parameter. Berikut parameter utama pada `sklearn.manifold.TSNE`:
+Parameter t-SNE sangat penting karena hasilnya **sangat sensitif** terhadap parameter choice. Berikut parameter utama di `sklearn.manifold.TSNE`:
 
 ### Tabel Parameter
 
@@ -186,12 +220,12 @@ Memahami parameter t-SNE sangat penting karena hasilnya **sangat sensitif** terh
 |---|---|---|---|
 | `n_components` | 2 | 2 atau 3 | Jumlah dimensi output |
 | `perplexity` | 30.0 | 5–50 | Keseimbangan antara struktur lokal dan global |
-| `learning_rate` | `'auto'` | `'auto'` atau 10–1000 | Kecepatan optimisasi (auto = N/12, min 50) |
+| `learning_rate` | `'auto'` | `'auto'` atau 10–1000 | Optimization step size (auto = N/12, min 50) |
 | `max_iter` | 1000 | 250+ | Jumlah iterasi gradient descent |
 | `init` | `'pca'` | `'pca'`, `'random'` | Metode inisialisasi posisi awal |
-| `random_state` | None | integer | Seed untuk reproduksibilitas |
-| `metric` | `'euclidean'` | lihat dokumentasi | Metrik jarak |
-| `method` | `'barnes_hut'` | `'barnes_hut'`, `'exact'` | Algoritma optimisasi |
+| `random_state` | None | integer | Seed untuk reproducibility |
+| `metric` | `'euclidean'` | lihat dokumentasi | Distance metric |
+| `method` | `'barnes_hut'` | `'barnes_hut'`, `'exact'` | Optimization algorithm |
 | `n_jobs` | None | integer | Jumlah CPU core (hanya `method='exact'`) |
 
 > **Awas: Perubahan API scikit-learn** — Pada sklearn versi lama (< 1.2), parameter iterasi bernama `n_iter` dan learning rate default-nya `200`. Sejak **sklearn 1.2+**, parameternya berubah menjadi `max_iter` dan `learning_rate='auto'`. Inisialisasi juga berubah dari `init='random'` menjadi `init='pca'`. Pastikan kode kamu menggunakan parameter yang sesuai dengan versi sklearn yang terinstall. Cek versi: `import sklearn; print(sklearn.__version__)`.
@@ -200,11 +234,17 @@ Memahami parameter t-SNE sangat penting karena hasilnya **sangat sensitif** terh
 
 #### Perplexity
 
-Perplexity mengontrol seberapa banyak "tetangga" yang dipertimbangkan untuk setiap titik data. Secara intuitif, perplexity mirip dengan jumlah tetangga terdekat yang efektif.
+Perplexity mengontrol berapa banyak "neighbors" yang dipertimbangkan untuk setiap data point. Secara intuitif, perplexity mirip dengan jumlah effective nearest neighbors.
 
-- **Perplexity rendah** (5-10): Fokus pada struktur sangat lokal. Klaster kecil-kecil, bisa fragmentasi
-- **Perplexity sedang** (15-50): Keseimbangan lokal-global. Umumnya hasil terbaik
-- **Perplexity tinggi** (50+): Lebih mempertimbangkan struktur global. Klaster lebih "menyebar"
+**Rumus:**
+
+$$\text{Perp}(P_i) = 2^{H(P_i)} \quad \text{di mana} \quad H(P_i) = -\sum_j p_{j|i} \log_2 p_{j|i}$$
+
+$H(P_i)$ adalah Shannon entropy dari distribusi $P_i$. Perplexity tinggi → $\sigma_i$ besar → lebih banyak neighbors diperhitungkan.
+
+- **Perplexity rendah** (5-10): Fokus pada very local structure. Clusters kecil-kecil, bisa fragmented
+- **Perplexity sedang** (15-50): Balance antara local dan global. Umumnya hasil terbaik
+- **Perplexity tinggi** (50+): Lebih mempertimbangkan global structure. Clusters lebih "spread out"
 
 Rule of thumb: perplexity harus **lebih kecil dari jumlah data**. Untuk dataset kecil (N < 100), gunakan perplexity 5-15.
 
@@ -212,28 +252,28 @@ Rule of thumb: perplexity harus **lebih kecil dari jumlah data**. Untuk dataset 
 
 #### Learning Rate
 
-Mengontrol seberapa besar langkah optimisasi di setiap iterasi.
+Mengontrol step size optimasi di setiap iterasi.
 
-- Terlalu kecil: konvergensi lambat, bisa terjebak di local minimum
-- Terlalu besar: hasil tidak stabil, titik-titik "meledak" menyebar tidak beraturan
-- Rekomendasi: gunakan `'auto'` (default sklearn 1.2+), yang menghitung `max(N / 12, 50)`
+- Terlalu kecil: slow convergence, bisa stuck di local minimum
+- Terlalu besar: unstable, points "meledak" menyebar tidak beraturan
+- Rekomendasi: pakai `'auto'` (default sklearn 1.2+), yang menghitung `max(N / 12, 50)`
 
 #### Max Iter (Jumlah Iterasi)
 
-- Default 1000 sudah cukup untuk kebanyakan kasus
-- Untuk dataset besar, mungkin perlu dinaikkan ke 2000-5000
-- Cek konvergensi melalui atribut `kl_divergence_` setelah fitting
+- Default 1000 sudah cukup untuk most cases
+- Untuk large datasets, mungkin perlu naikkan ke 2000-5000
+- Cek convergence lewat atribut `kl_divergence_` setelah fitting
 
 #### Init (Inisialisasi)
 
-- `'pca'` (default): Stabil, deterministik, hasil lebih konsisten antar run
-- `'random'`: Acak, perlu lebih banyak iterasi, hasil bervariasi
+- `'pca'` (default): Stable, deterministic, hasil lebih konsisten antar run
+- `'random'`: Random, perlu lebih banyak iterasi, hasil bervariasi
 
 ### Wajib: StandardScaler Sebelum t-SNE
 
-t-SNE menghitung jarak Euclidean antar titik data. Jika fitur memiliki **skala berbeda** (misalnya usia 20-80 vs pendapatan 1.000.000-100.000.000), fitur dengan skala besar akan mendominasi perhitungan jarak.
+t-SNE menghitung Euclidean distance antar data points. Kalau features punya **skala berbeda** (misalnya usia 20-80 vs pendapatan 1.000.000-100.000.000), feature dengan skala besar akan mendominasi distance calculation.
 
-Solusi: **selalu** standarisasi data sebelum t-SNE.
+Solusi: **selalu** standardize data sebelum t-SNE.
 
 ```python
 from sklearn.preprocessing import StandardScaler
@@ -246,12 +286,12 @@ tsne = TSNE(random_state=42)
 X_tsne = tsne.fit_transform(X_scaled)
 ```
 
-> **Penting**: Langkah StandardScaler ini **wajib** dan sering terlewat. Tanpa scaling, hasil t-SNE bisa menyesatkan karena fitur dengan range besar mendominasi.
+> **Penting**: Step StandardScaler ini **wajib** dan sering terlewat. Tanpa scaling, hasil t-SNE bisa misleading karena features dengan range besar mendominasi.
 
 <details>
 <summary><b>Cek Pemahaman</b>: Apa yang terjadi jika perplexity diset terlalu tinggi (misalnya 200) pada dataset dengan 150 data?</summary>
 
-Perplexity harus lebih kecil dari jumlah data. Jika perplexity = 200 pada 150 data, sklearn akan menghasilkan error atau warning. Secara konseptual, perplexity 200 berarti setiap titik mempertimbangkan 200 tetangga — tapi hanya ada 149 titik lain. Ini tidak bermakna dan akan menghasilkan visualisasi yang buruk.
+Perplexity harus lebih kecil dari jumlah data. Kalau perplexity = 200 pada 150 data, sklearn akan error/warning. Secara konseptual, perplexity 200 berarti setiap point mempertimbangkan 200 neighbors — tapi hanya ada 149 points lain. Ini tidak bermakna dan akan menghasilkan visualisasi yang buruk.
 
 </details>
 
@@ -259,25 +299,43 @@ Perplexity harus lebih kecil dari jumlah data. Jika perplexity = 200 pada 150 da
 
 ## 6. Interpretasi t-SNE yang Benar
 
-Ini adalah bagian **terpenting** dari materi t-SNE. Banyak praktisi membuat kesalahan interpretasi yang serius. Berikut tiga kesalahan paling umum dan cara menghindarinya.
+Ini adalah bagian **terpenting** dari materi t-SNE. Banyak praktisi membuat interpretation mistakes yang serius.
 
-### Kesalahan 1: Ukuran Klaster Bermakna
+### Axis X dan Y pada t-SNE Plot
 
-**SALAH**: "Klaster A lebih besar dari klaster B, berarti klaster A lebih tersebar."
+Pertanyaan paling umum saat pertama kali melihat t-SNE plot: **"Axis X dan Y itu apa?"**
 
-**BENAR**: Ukuran (area) klaster di t-SNE **tidak** merepresentasikan sebaran data yang sebenarnya. t-SNE cenderung menyamakan kepadatan klaster — klaster yang sangat rapat di dimensi tinggi bisa terlihat sama besarnya dengan klaster yang sebenarnya tersebar.
+Jawabannya: **tidak ada artinya**. Berbeda dengan PCA di mana PC1 = direction of maximum variance dan bisa di-interpret lewat loadings, axis di t-SNE:
 
-### Kesalahan 2: Jarak Antar Klaster Bermakna
+- **Bukan represent fitur tertentu** — axis X bukan fitur ke-1, axis Y bukan fitur ke-2
+- **Unitless** — skala angkanya (misal -40 sampai 40) tidak punya meaning
+- **Arbitrary orientation** — plot bisa di-rotate, di-flip, atau di-scale tanpa mengubah informasi apapun
 
-**SALAH**: "Klaster A dan B berdekatan, berarti kedua kelompok itu mirip."
+Kenapa? Karena t-SNE hanya mengoptimasi **relative positions** antar data points — bukan posisi absolutnya. Yang dijaga oleh t-SNE: **jarak relatif antar titik**, bukan koordinatnya.
 
-**BENAR**: Jarak antar klaster di t-SNE **tidak** bisa diinterpretasikan secara langsung. Dua klaster yang berdekatan belum tentu lebih mirip dibanding klaster yang berjauhan. t-SNE hanya menjamin struktur **di dalam** klaster, bukan antar klaster.
+> **Maka**: Yang boleh kamu interpretasikan dari t-SNE plot hanya **"titik-titik ini dekat satu sama lain"** (similar) dan **"titik-titik ini jauh"** (dissimilar secara lokal). Bukan posisi, bukan skala, bukan axis.
 
-### Kesalahan 3: Satu Visualisasi Sudah Cukup
+Karena itu, saat membuat t-SNE plot, cukup beri label axis `t-SNE 1` dan `t-SNE 2` — bukan nama fitur.
 
-**SALAH**: Menjalankan t-SNE sekali dan langsung menyimpulkan.
+Berikut 3 common mistakes lain dan cara menghindarinya.
 
-**BENAR**: t-SNE adalah algoritma **stokastik** — hasilnya bisa berbeda setiap kali dijalankan (kecuali `random_state` di-fix). Selalu jalankan t-SNE dengan **beberapa random seed** dan pastikan pola yang terlihat **konsisten** sebelum membuat kesimpulan.
+### Mistake 1: Cluster Size is Meaningful
+
+**SALAH**: "Cluster A lebih besar dari cluster B, berarti cluster A lebih spread out."
+
+**BENAR**: Ukuran (area) cluster di t-SNE **tidak** merepresentasikan actual spread dari data. t-SNE cenderung equalize cluster density — cluster yang sangat compact di high-dimensional space bisa terlihat sama besarnya dengan cluster yang sebenarnya spread out.
+
+### Mistake 2: Inter-Cluster Distance is Meaningful
+
+**SALAH**: "Cluster A dan B berdekatan, berarti kedua kelompok itu similar."
+
+**BENAR**: Jarak antar clusters di t-SNE **tidak** bisa diinterpretasikan langsung. Dua clusters yang berdekatan belum tentu lebih similar dibanding clusters yang berjauhan. t-SNE hanya menjamin structure **di dalam** cluster, bukan antar clusters.
+
+### Mistake 3: One Run is Enough
+
+**SALAH**: Jalankan t-SNE sekali lalu langsung conclude.
+
+**BENAR**: t-SNE adalah **stochastic** algorithm — hasilnya bisa berbeda setiap kali dijalankan (kecuali `random_state` di-fix). Selalu jalankan t-SNE dengan **beberapa random seeds** dan pastikan pattern yang terlihat **konsisten** sebelum bikin kesimpulan.
 
 ![Efek random state berbeda pada dataset Iris](figures/11_tsne_random_state.png)
 
@@ -285,9 +343,9 @@ Ini adalah bagian **terpenting** dari materi t-SNE. Banyak praktisi membuat kesa
 
 ```mermaid
 graph TD
-    A{"Melihat klaster<br>di t-SNE?"} -->|Ya| B{"Pola konsisten<br>di beberapa<br>random seed?"}
-    B -->|Ya| C["Klaster kemungkinan<br>memang ada di data"]
-    B -->|Tidak| D["Bisa jadi artefak<br>parameter / randomness"]
+    A{"Melihat clusters<br>di t-SNE?"} -->|Ya| B{"Pattern konsisten<br>di beberapa<br>random seeds?"}
+    B -->|Ya| C["Clusters kemungkinan<br>memang ada di data"]
+    B -->|Tidak| D["Bisa jadi artifact<br>parameter / randomness"]
     A -->|Tidak| E["Coba ubah<br>perplexity"]
 
     style A fill:#e8daef,stroke:#8e44ad,color:#2c3e50
@@ -302,11 +360,11 @@ graph TD
 | DO | DON'T |
 |---|---|
 | Jalankan dengan beberapa `random_state` | Percaya satu run saja |
-| Interpretasikan **keberadaan** klaster | Interpretasikan **ukuran** klaster |
+| Interpretasikan **keberadaan** clusters | Interpretasikan **ukuran** clusters |
 | Coba beberapa nilai `perplexity` | Langsung pakai default tanpa eksplorasi |
-| Gunakan StandardScaler sebelum t-SNE | Jalankan t-SNE pada data tanpa scaling |
-| Cocokkan pola visual dengan label/metadata | Interpretasikan jarak antar klaster |
-| Set `random_state` untuk reproduksibilitas | Biarkan random (sulit direproduksi) |
+| Pakai StandardScaler sebelum t-SNE | Jalankan t-SNE tanpa scaling |
+| Cocokkan visual patterns dengan label/metadata | Interpretasikan jarak antar clusters |
+| Set `random_state` untuk reproducibility | Biarkan random (sulit reproduce) |
 
 > **Tips**: Artikel Distill.pub *"How to Use t-SNE Effectively"* (Wattenberg et al., 2016) adalah referensi terbaik untuk memahami interpretasi t-SNE. Sangat direkomendasikan untuk dibaca: [distill.pub/2016/misread-tsne](https://distill.pub/2016/misread-tsne/)
 
@@ -314,56 +372,56 @@ graph TD
 
 ## 7. Limitasi t-SNE
 
-Meskipun sangat populer, t-SNE memiliki beberapa keterbatasan penting:
+Meskipun sangat populer, t-SNE punya beberapa keterbatasan penting:
 
-### 1. Kompleksitas Komputasi
+### 1. Computational Complexity
 
-- **Exact t-SNE**: $O(N^2)$ — tidak praktis untuk dataset besar
+- **Exact t-SNE**: $O(N^2)$ — tidak praktis untuk large datasets
 - **Barnes-Hut t-SNE** (default sklearn): $O(N \log N)$ — lebih cepat tapi tetap lambat untuk > 50.000 data
-- Untuk dataset besar (> 100.000), pertimbangkan **UMAP** sebagai alternatif yang lebih cepat
+- Untuk datasets besar (> 100.000), pertimbangkan **UMAP** sebagai faster alternative
 
-### 2. Tidak Mempertahankan Struktur Global
+### 2. Doesn't Preserve Global Structure
 
-t-SNE fokus pada struktur lokal (kedekatan tetangga). Konsekuensinya:
-- Jarak antar klaster tidak bermakna
-- Posisi relatif antar klaster bisa berubah tiap run
-- Tidak cocok untuk menyimpulkan hubungan hierarkis antar kelompok
+t-SNE fokus pada local structure (neighbor proximity). Konsekuensinya:
+- Jarak antar clusters tidak bermakna
+- Posisi relatif antar clusters bisa berubah tiap run
+- Tidak cocok untuk menyimpulkan hierarchical relationships antar kelompok
 
-### 3. Sensitif terhadap Parameter
+### 3. Parameter Sensitive
 
-Hasil t-SNE bisa berubah drastis dengan parameter berbeda:
-- Perplexity yang salah bisa membuat klaster pecah atau menyatu
-- Learning rate yang salah bisa membuat titik menumpuk di satu titik
-- Iterasi terlalu sedikit bisa menghasilkan visualisasi yang belum konvergen
+Hasil t-SNE bisa berubah drastis dengan parameter yang berbeda:
+- Perplexity yang salah bisa bikin clusters pecah atau merge
+- Learning rate yang salah bisa bikin points menumpuk di satu titik
+- Iterasi terlalu sedikit → visualisasi belum converge
 
-### 4. Stochastic (Tidak Deterministik)
+### 4. Stochastic (Non-Deterministic)
 
-Tanpa `random_state` yang di-fix, setiap run menghasilkan visualisasi berbeda. Ini membuat:
-- Presentasi sulit direproduksi
+Tanpa `random_state` yang di-fix, setiap run menghasilkan visualisasi berbeda:
+- Presentasi sulit di-reproduce
 - Perbandingan antar run memerlukan seed yang sama
 
-### 5. Hanya untuk Visualisasi
+### 5. Visualization Only
 
-- Tidak memiliki `transform()` untuk data baru (transductive, bukan inductive)
-- Tidak cocok sebagai preprocessing untuk model machine learning
-- Sumbu hasil (t-SNE 1, t-SNE 2) **tidak memiliki interpretasi** — berbeda dengan PC1, PC2 pada PCA yang bisa ditelusuri ke fitur asli
+- Tidak punya `transform()` untuk data baru (transductive, bukan inductive)
+- Tidak cocok sebagai preprocessing untuk ML models
+- Sumbu hasil (t-SNE 1, t-SNE 2) **tidak punya interpretasi** — berbeda dengan PC1, PC2 pada PCA yang bisa traced back ke original features
 
 ### Alternatif: UMAP
 
-**UMAP** (Uniform Manifold Approximation and Projection) adalah alternatif modern yang:
+**UMAP** (Uniform Manifold Approximation and Projection) adalah modern alternative yang:
 - Lebih cepat dari t-SNE
-- Lebih baik mempertahankan struktur global
-- Mendukung `transform()` untuk data baru
+- Lebih baik dalam preserving global structure
+- Support `transform()` untuk data baru
 
-UMAP tidak dibahas dalam materi ini, tapi perlu diketahui sebagai opsi lain.
+UMAP tidak dibahas di materi ini, tapi perlu diketahui sebagai opsi lain.
 
-> **Catatan**: Keterbatasan bukan berarti tidak berguna. t-SNE tetap menjadi *de facto standard* untuk visualisasi data berdimensi tinggi dalam bidang bioinformatika, NLP, dan deep learning. Kuncinya: **pahami limitasinya, interpretasikan dengan hati-hati**.
+> **Catatan**: Limitations bukan berarti tidak berguna. t-SNE tetap jadi *de facto standard* untuk visualisasi high-dimensional data di bidang bioinformatics, NLP, dan deep learning. Kuncinya: **pahami limitasinya, interpretasikan dengan hati-hati**.
 
 ---
 
 ## 8. t-SNE dengan Python: Quick Reference
 
-Berikut contoh minimal penggunaan t-SNE dengan scikit-learn:
+Berikut minimal example penggunaan t-SNE dengan scikit-learn:
 
 ```python
 import numpy as np
@@ -406,15 +464,15 @@ print(f"Iterasi berjalan: {tsne.n_iter_}")
 
 | Baris | Penjelasan |
 |---|---|
-| `StandardScaler().fit_transform(X)` | Standarisasi fitur ke mean=0, std=1 |
+| `StandardScaler().fit_transform(X)` | Standardize features ke mean=0, std=1 |
 | `TSNE(n_components=2, ...)` | Reduksi ke 2 dimensi |
-| `perplexity=30` | Jumlah tetangga efektif (default, cocok untuk kebanyakan kasus) |
-| `random_state=42` | Seed untuk reproduksibilitas |
-| `fit_transform(X_scaled)` | Hitung embedding t-SNE |
-| `kl_divergence_` | Nilai KL divergence akhir (semakin kecil = semakin baik) |
-| `n_iter_` | Jumlah iterasi yang dijalankan |
+| `perplexity=30` | Effective number of neighbors (default, cocok untuk most cases) |
+| `random_state=42` | Seed untuk reproducibility |
+| `fit_transform(X_scaled)` | Compute t-SNE embedding |
+| `kl_divergence_` | Final KL divergence (semakin kecil = semakin baik) |
+| `n_iter_` | Number of iterations yang dijalankan |
 
-> **Tips**: Selalu gunakan `random_state` agar hasil bisa direproduksi. Tanpa ini, setiap kali menjalankan kode yang sama, hasilnya akan berbeda.
+> **Tips**: Selalu pakai `random_state` agar hasil bisa di-reproduce. Tanpa ini, setiap kali jalankan kode yang sama, hasilnya akan berbeda.
 
 ---
 
@@ -429,34 +487,34 @@ print(f"Iterasi berjalan: {tsne.n_iter_}")
 | Dataset besar (> 5000) | 30–50 | 1000–2000 | `'auto'` | `'pca'` |
 | Klaster terlalu kecil/pecah | Naikkan | — | — | — |
 | Klaster terlalu besar/menyatu | Turunkan | — | — | — |
-| Hasil belum konvergen | — | Naikkan | — | — |
+| Hasil belum converge | — | Naikkan | — | — |
 
 ### Do's dan Don'ts
 
 **Sebelum t-SNE:**
-- Selalu `StandardScaler` terlebih dahulu
-- Pahami data kamu: berapa banyak sampel, fitur, dan kelas yang ada
+- Selalu `StandardScaler` dulu
+- Pahami data kamu: berapa banyak samples, features, dan classes
 
 **Saat menjalankan t-SNE:**
-- Set `random_state` untuk reproduksibilitas
+- Set `random_state` untuk reproducibility
 - Coba minimal 3 nilai `perplexity` yang berbeda
 - Coba minimal 3 nilai `random_state` yang berbeda
 
 **Saat menginterpretasi:**
-- Fokus pada **keberadaan** klaster, bukan ukuran atau jaraknya
-- Pastikan pola konsisten di beberapa run
+- Fokus pada **keberadaan** clusters, bukan size atau distance-nya
+- Pastikan pattern konsisten di beberapa runs
 - Cocokkan visual dengan label/metadata yang kamu punya
-- Jangan buat kesimpulan kausal dari visualisasi t-SNE
+- Jangan bikin causal conclusions dari visualisasi t-SNE
 
 ### Kapan Pakai t-SNE?
 
 | Situasi | Gunakan t-SNE? | Alasan |
 |---|---|---|
-| Eksplorasi klaster di data 50D | Ya | Ideal untuk melihat struktur lokal |
+| Cluster exploration di data 50D | Ya | Ideal untuk lihat local structure |
 | Preprocessing sebelum Random Forest | Tidak | t-SNE bukan untuk feature engineering |
-| Visualisasi word embeddings | Ya | Use case klasik t-SNE |
-| Perbandingan distribusi antar 2 dataset | Hati-hati | Jarak antar klaster tidak bermakna |
-| Dataset 1 juta baris | Tidak | Terlalu lambat, gunakan UMAP |
+| Visualisasi word embeddings | Ya | Classic t-SNE use case |
+| Comparing distributions antar 2 dataset | Hati-hati | Inter-cluster distance tidak bermakna |
+| Dataset 1 juta baris | Tidak | Terlalu lambat, pakai UMAP |
 | Presentasi hasil analisis ke stakeholder | Ya | Visualisasi intuitif dan menarik |
 
 ---

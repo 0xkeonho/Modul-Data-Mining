@@ -43,7 +43,9 @@ asdos-datmin/
 
 ## Konvensi & Aturan
 - **Bahasa**: Konten materi dalam Bahasa Indonesia, tapi istilah teknis data science boleh pakai English (e.g. "missing values", "feature selection", "clustering")
-- **Format utama**: `.md` per topik + demo code `.py`
+- **Format utama**: `.md` per topik (slide-style presentasi) + `.ipynb` praktikum + `.py` scripts
+- **Gaya `.md`**: Concise, bullet-heavy, visual-first — disampaikan seperti slide di kelas. Code snippets pendek (3-5 baris), detail lengkap di notebook
+- **Gaya `.ipynb`**: Hands-on praktikum lengkap dengan full code, markdown cells penjelasan, dan output visible
 - **Organisasi**: Per-minggu → `week-01/`, `week-02/`, dst.
 - **Naming**: Folder pakai `week-XX/`, file pakai nama topik (contoh: `Virtual-Environment.md`)
 - **Library versions**: Selalu pakai latest stable, dicek via PyPI
@@ -52,6 +54,9 @@ asdos-datmin/
 - **Emoji**: Jangan pakai emoji di file `.md`
 - **Git push**: Jangan push ke GitHub kecuali diminta secara eksplisit oleh user
 - **Gitignore tambahan**: Folder `quizizz/` tidak di-push (internal draft)
+- **Visualisasi**: Gunakan matplotlib (plain, tanpa seaborn/plotly) untuk semua figure
+- **Scope PCA**: PCA dibuat oleh asisten dosen lain (Yendra) — jangan buat konten PCA
+- **sklearn API**: Gunakan API terbaru — `max_iter` (bukan `n_iter`), `learning_rate='auto'`, `init='pca'`
 
 ## Kurikulum
 
@@ -168,6 +173,44 @@ asdos-datmin/
 - Updated root `README.md` — week 2 description: "Data Cleaning & Visualisasi Multivariat (t-SNE)"
 - Added `materi-dosen/` to `.gitignore` (copyrighted professor materials + credentials)
 - Installed matplotlib + scikit-learn in `datmin_w2` conda env for figure generation
+
+### Session 2026-03-05 (sesi 7)
+- Reviewed week-02 materials: quality review identified 5 revisions (R1-R5)
+- Renamed `demo/` → `praktikum/` in week-01 and week-02, renamed `Data-Cleaning-Demo.ipynb` → `Data-Cleaning.ipynb`, `t-SNE-Demo.ipynb` → `t-SNE.ipynb`
+- Committed pre-revision state: `5ec8050` (revert point)
+- Applied R1-R5 slide-style revisions to `Data-Cleaning.md` (856→576 lines, -33%) and `t-SNE.md` (564→589 lines, +4%)
+  - R5: Added `## Tujuan Pembelajaran` with 5 learning objectives to both files
+  - R1: Shortened long paragraphs to bullets in both files
+  - R2: Reduced code blocks in Data-Cleaning.md (IQR 14→4 lines, Z-score 20→3 lines, visualisasi code removed, capping/trimming shortened, transformasi consolidated)
+  - R3: Wrapped 3 formula blocks in t-SNE.md into `<details>` expandable sections
+  - R4: Condensed Section 4 (Binning/Smoothing) from ~160 to ~60 lines with comparison tables
+- Established convention: `.md` = slide-style presentation (concise, visual-first), `.ipynb` = hands-on praktikum (full code)
+- Updated `AGENTS.md` — conventions and session history
+
+### Session 2026-03-06 (sesi 8)
+- Revised `week-02/t-SNE.md` language from formal textbook Indonesian to natural mix Indo-English style
+  - Section 1-3: subtitle, tujuan pembelajaran terms, PCA vs t-SNE comparison table (English column labels), analogy, math section ("set of eigenvectors", "positions $Y$")
+  - Section 4 (biggest change): Step headers → English ("Step 1: Compute Similarity in High-Dimensional Space"), "di-symmetrize", "heavier tails", "crowding problem", Mermaid diagram labels → English
+  - Section 5: "effective nearest neighbors", "step size", "slow convergence", "stuck di local minimum", "Shannon entropy", "reproducibility"
+  - Section 6: Mistake headers → English ("Mistake 1: Cluster Size is Meaningful"), "equalize cluster density", "spread out", "stochastic algorithm", flowchart labels updated
+  - Section 7: Sub-headers → English ("Computational Complexity", "Doesn't Preserve Global Structure", "Parameter Sensitive", "Visualization Only"), "faster alternative", "preserving global structure", "traced back ke original features"
+  - Section 8-9: code explanation table (English descriptions), cheatsheet updated, "causal conclusions", "reproducibility"
+  - Section 10 (Tugas): kept standard Indonesian — student-facing assignment text
+- Established language convention: mix Indo-English naturally — English for technical terms that sound better in English, Indonesian for explanatory flow. Avoid forced translations like "ekor lebih tebal" → use "heavier tails" instead
+
+## Pengumpulan Tugas Mahasiswa
+
+- **Platform**: GitHub Classroom (bukan Fork+PR)
+- **GitHub Organization**: `sains-data-its` (belum dibuat)
+- **Classroom name**: Praktikum Data Mining 2025
+- **Repo `Modul-Data-Mining`**: tetap di akun pribadi Danish (materi referensi, public). Tidak masuk org.
+- **Workflow per tugas**:
+  1. Buat template repo di org `sains-data-its` (README instruksi + dataset + notebook kosong), tandai sebagai "Template repository"
+  2. Create assignment di classroom.github.com → pilih template repo → set deadline
+  3. Share invite link ke mahasiswa (via WA / LMS)
+  4. Mahasiswa: clone → kerjakan → push (submit = push terakhir sebelum deadline)
+  5. Review: dashboard classroom atau `gh classroom clone student-repos`
+- **Status setup**: BELUM — nanti setelah konten materi selesai
 
 ## Tips & Gotchas
 - `conda env export` default includes platform-specific builds. Use `--no-builds` for cross-OS sharing

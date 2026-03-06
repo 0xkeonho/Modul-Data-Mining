@@ -1,6 +1,16 @@
 # Data Cleaning: Noisy Data dan Outlier
 
-Panduan lengkap untuk mendeteksi dan menangani **noisy data** dan **outlier** dalam dataset. Materi ini melengkapi apa yang sudah dipelajari di mata kuliah Teknik Sampling dan Data Wrangling, dengan fokus pada teknik yang **belum dibahas** sebelumnya.
+Materi deteksi dan penanganan **noisy data** serta **outlier** — melengkapi materi Teknik Sampling dan Data Wrangling.
+
+## Tujuan Pembelajaran
+
+Setelah mempelajari materi ini, mahasiswa diharapkan mampu:
+
+- Membedakan noise, outlier, dan anomaly
+- Mendeteksi outlier menggunakan metode IQR, Z-Score, dan Modified Z-Score
+- Menerapkan teknik binning dan smoothing untuk mengurangi noise
+- Memilih strategi handling outlier yang tepat (capping, trimming, transformasi)
+- Mengevaluasi dampak data cleaning pada statistik deskriptif
 
 ## Daftar Isi
 
@@ -58,7 +68,11 @@ Jangan lupa cek duplikat juga: `df.duplicated().sum()` lalu `df.drop_duplicates(
 
 > **Catatan**: Detail tentang missing values — deteksi dengan `missingno`, KNN Imputer, MICE/IterativeImputer, perbandingan visual antar metode imputasi — sudah dibahas lengkap di materi Teknik Sampling dan Data Wrangling (Modul 5). Materi ini tidak mengulang topik tersebut.
 
-> **Awas: Disguised Missing Data** — Tidak semua missing values tampil sebagai `NaN`. Kadang user sengaja mengisi data palsu pada field wajib karena tidak ingin memberikan informasi pribadi — misalnya memilih tanggal lahir default "1 Januari 2000" atau mengisi pendapatan "0". Data seperti ini terlihat valid secara format, tapi sebenarnya tidak informatif. Gunakan domain knowledge dan cek distribusi untuk mendeteksinya (Han et al., 2023).
+> **Awas: Disguised Missing Data** — Tidak semua missing values tampil sebagai `NaN`:
+>
+> - User mengisi data palsu pada field wajib (tanggal lahir default "1 Januari 2000", pendapatan "0")
+> - Data terlihat valid secara format, tapi tidak informatif
+> - Deteksi: gunakan domain knowledge + cek distribusi (Han et al., 2023)
 
 ---
 
@@ -87,7 +101,7 @@ Tiga istilah ini sering tertukar. Berikut perbedaannya:
 | **Contoh** | Umur = -5 tahun | Gaji CEO = 50 miliar (di data karyawan) | Transaksi fraud di antara jutaan transaksi normal |
 | **Aksi** | Selalu bersihkan | Tergantung konteks dan domain | Pertahankan dan analisis lebih lanjut |
 
-> **Penting**: Tidak semua outlier adalah noise, dan tidak semua noise tampil sebagai outlier. Seorang CEO yang gajinya 100x lipat karyawan lain adalah outlier, tapi **bukan** noise — itu data valid. Sebaliknya, umur = -5 tahun adalah noise yang jelas.
+> **Penting**: Tidak semua outlier adalah noise. Gaji CEO 100x karyawan lain = outlier **valid**. Umur = -5 tahun = noise **jelas**. Statistik saja tidak cukup — butuh **domain knowledge**.
 
 <details>
 <summary><b>Cek Pemahaman</b>: Dalam dataset transaksi bank, ditemukan satu transaksi senilai Rp 500 juta di antara ribuan transaksi rata-rata Rp 500 ribu. Noise, outlier, atau anomaly?</summary>
@@ -136,29 +150,13 @@ $$\text{Batas atas} = Q3 + 1.5 \times IQR$$
 Data di luar kedua batas tersebut dianggap **outlier**. Jika menggunakan faktor **3.0** (bukan 1.5), data disebut **extreme outlier**.
 
 ```python
-Q1 = data.quantile(0.25)
-Q3 = data.quantile(0.75)
+Q1, Q3 = data.quantile(0.25), data.quantile(0.75)
 IQR = Q3 - Q1
-
-batas_bawah = Q1 - 1.5 * IQR
-batas_atas = Q3 + 1.5 * IQR
-
-print(f"Q1 = {Q1}, Q3 = {Q3}, IQR = {IQR}")
-print(f"Batas bawah = {batas_bawah}, Batas atas = {batas_atas}")
-
+batas_bawah, batas_atas = Q1 - 1.5 * IQR, Q3 + 1.5 * IQR
 outliers = data[(data < batas_bawah) | (data > batas_atas)]
-print(f"Outlier: {outliers.values}")
 ```
 
-Expected output:
-
-```
-Q1 = 19.25, Q3 = 24.25, IQR = 5.0
-Batas bawah = 11.75, Batas atas = 31.75
-Outlier: [ 42 100]
-```
-
-IQR berhasil mendeteksi **42** dan **100** sebagai outlier karena keduanya di atas batas atas (31.75).
+Hasil: Q1=19.25, Q3=24.25, IQR=5.0, batas=[11.75, 31.75] → outlier: **42, 100**.
 
 ### 3.2 Z-Score
 
@@ -172,39 +170,11 @@ Aturan umum: data dengan $|z| > 3$ dianggap outlier.
 
 ```python
 from scipy import stats
-
-z_scores = stats.zscore(data)  # menggunakan population std (ddof=0)
-
-print("Z-scores:")
-for val, z in zip(data, z_scores):
-    flag = " <-- OUTLIER" if abs(z) > 3 else ""
-    print(f"  {val:>5} -> z = {z:>6.2f}{flag}")
-
+z_scores = stats.zscore(data)
 outliers = data[np.abs(z_scores) > 3]
-print(f"\nOutlier (|z| > 3): {outliers.values}")
 ```
 
-Expected output:
-
-```
-Z-scores:
-     15 -> z =  -0.64
-     18 -> z =  -0.51
-     19 -> z =  -0.47
-     20 -> z =  -0.43
-     21 -> z =  -0.39
-     22 -> z =  -0.35
-     22 -> z =  -0.35
-     25 -> z =  -0.22
-     42 -> z =   0.48
-    100 -> z =   2.87
-
-Outlier (|z| > 3): []
-```
-
-Perhatikan: Z-score **tidak mendeteksi satupun outlier**, padahal 100 jelas-jelas jauh dari mayoritas data. Mengapa?
-
-Ini disebut **masking effect** — outlier itu sendiri menaikkan mean (dari ~21 ke 30.4) dan menggembungkan standar deviasi (menjadi 24.2), sehingga z-score-nya "tersamarkan". Masalah ini umum terjadi pada dataset kecil atau ketika ada beberapa outlier sekaligus.
+Hasil: **tidak ada outlier terdeteksi** (z-score 100 hanya 2.87). Ini disebut **masking effect** — outlier menaikkan mean (21→30.4) dan menggembungkan std (→24.2), sehingga z-score-nya "tersamarkan".
 
 > **Catatan**: Z-score mengasumsikan distribusi **normal** dan sensitif terhadap outlier (karena menggunakan mean dan std). Untuk data kecil atau skewed, gunakan Modified Z-score.
 
@@ -223,40 +193,11 @@ Konstanta 0.6745 membuat MAD setara dengan standar deviasi pada distribusi norma
 ```python
 median = data.median()
 mad = np.median(np.abs(data - median))
-
 modified_z = 0.6745 * (data - median) / mad
-
-print(f"Median = {median}, MAD = {mad}")
-print("\nModified Z-scores:")
-for val, mz in zip(data, modified_z):
-    flag = " <-- OUTLIER" if abs(mz) > 3.5 else ""
-    print(f"  {val:>5} -> Mz = {mz:>6.2f}{flag}")
-
 outliers = data[np.abs(modified_z) > 3.5]
-print(f"\nOutlier (|Mz| > 3.5): {outliers.values}")
 ```
 
-Expected output:
-
-```
-Median = 21.5, MAD = 3.0
-
-Modified Z-scores:
-     15 -> Mz =  -1.46
-     18 -> Mz =  -0.79
-     19 -> Mz =  -0.56
-     20 -> Mz =  -0.34
-     21 -> Mz =  -0.11
-     22 -> Mz =   0.11
-     22 -> Mz =   0.11
-     25 -> Mz =   0.79
-     42 -> Mz =   4.61 <-- OUTLIER
-    100 -> Mz =  17.65 <-- OUTLIER
-
-Outlier (|Mz| > 3.5): [ 42 100]
-```
-
-Modified Z-score berhasil mendeteksi **kedua outlier** yang dilewatkan oleh Z-score biasa. Ini karena median (21.5) dan MAD (3.0) tidak terpengaruh oleh nilai ekstrem.
+Hasil: median=21.5, MAD=3.0 → outlier: **42** (Mz=4.61) dan **100** (Mz=17.65). Berhasil mendeteksi kedua outlier yang dilewatkan Z-score karena median dan MAD **tidak terpengaruh** nilai ekstrem.
 
 ### 3.4 Perbandingan Metode Deteksi
 
@@ -276,58 +217,19 @@ Selain metode statistik, visualisasi membantu mengidentifikasi outlier secara in
 
 #### Boxplot
 
-Boxplot secara otomatis menampilkan IQR, median, whisker (1.5x IQR), dan titik-titik outlier.
-
-```python
-import matplotlib.pyplot as plt
-
-fig, ax = plt.subplots(figsize=(8, 2))
-ax.boxplot(data, vert=False, widths=0.5)
-ax.set_xlabel("Nilai")
-ax.set_title("Boxplot — Deteksi Outlier")
-plt.tight_layout()
-plt.show()
-```
-
-Pada boxplot, titik-titik di luar whisker adalah outlier. Dalam contoh di atas, nilai 42 dan 100 akan muncul sebagai titik terpisah di sebelah kanan whisker.
+Menampilkan IQR, median, whisker (1.5x IQR), dan titik outlier secara otomatis. Titik di luar whisker = outlier.
 
 ![Boxplot — Deteksi Outlier](figures/01_boxplot_outlier.png)
 
 #### Histogram
 
-Histogram menunjukkan distribusi frekuensi. Outlier terlihat sebagai bar yang terisolasi jauh dari kelompok utama.
-
-```python
-fig, ax = plt.subplots(figsize=(8, 4))
-ax.hist(data, bins=10, edgecolor="black", alpha=0.7)
-ax.set_xlabel("Nilai")
-ax.set_ylabel("Frekuensi")
-ax.set_title("Histogram — Distribusi Data")
-plt.tight_layout()
-plt.show()
-```
+Distribusi frekuensi — outlier terlihat sebagai bar terisolasi jauh dari kelompok utama.
 
 ![Histogram — Distribusi Data](figures/02_histogram_distribusi.png)
 
 #### Scatter Plot
 
-Scatter plot berguna untuk melihat outlier dalam konteks **dua variabel** sekaligus.
-
-```python
-# Contoh: scatter plot index vs value
-fig, ax = plt.subplots(figsize=(8, 4))
-ax.scatter(range(len(data)), data, edgecolors="black", linewidth=0.5)
-ax.set_xlabel("Index")
-ax.set_ylabel("Nilai")
-ax.set_title("Scatter Plot — Identifikasi Outlier")
-
-# Tambahkan garis batas IQR
-ax.axhline(y=batas_atas, color="red", linestyle="--", label=f"Batas atas IQR ({batas_atas})")
-ax.axhline(y=batas_bawah, color="red", linestyle="--", label=f"Batas bawah IQR ({batas_bawah})")
-ax.legend()
-plt.tight_layout()
-plt.show()
-```
+Melihat outlier dalam konteks **dua variabel** sekaligus. Tambahkan garis batas IQR untuk memperjelas threshold.
 
 ![Scatter Plot — Identifikasi Outlier dengan Batas IQR](figures/03_scatter_iqr.png)
 
@@ -346,9 +248,7 @@ Karena Z-score menggunakan **mean** dan **standar deviasi**, yang keduanya sensi
 
 ## 4. Binning dan Smoothing
 
-**Binning** adalah teknik membagi data menjadi kelompok-kelompok (bin) berdasarkan interval tertentu. Setelah data dikelompokkan, nilai-nilai dalam setiap bin bisa dihaluskan (**smoothing**) untuk mengurangi noise.
-
-Binning dan smoothing termasuk metode **non-parametrik** yang diperkenalkan di buku Han et al. sebagai teknik dasar data cleaning.
+**Binning** membagi data menjadi kelompok-kelompok (bin), lalu **smoothing** menghaluskan nilai dalam tiap bin untuk mengurangi noise. Metode non-parametrik dari Han et al.
 
 ### Flowchart Binning dan Smoothing
 
@@ -373,128 +273,32 @@ graph TD
     style H fill:#d5f5e3,stroke:#27ae60,color:#2c3e50
 ```
 
-### Contoh Data
+### Dua Jenis Binning
 
-Contoh klasik dari Han et al. (2023):
+Contoh data (Han et al., 2023): `[4, 8, 15, 21, 21, 24, 25, 28, 34]`
 
-```python
-data = pd.Series([4, 8, 15, 21, 21, 24, 25, 28, 34])
-```
+| Jenis | Cara Kerja | Fungsi pandas | Keterangan |
+|---|---|---|---|
+| **Equal-width** | Bagi range menjadi interval **lebar sama** | `pd.cut(data, bins=3)` | Sensitif terhadap outlier (range ditentukan min/max) |
+| **Equal-frequency** | Bagi agar tiap bin berisi **jumlah data sama** | `pd.qcut(data, q=3)` | Lebih tahan outlier, lebar interval bervariasi |
 
-### 4.1 Equal-Width Binning
+Equal-frequency dengan depth=3: Bin 1: [4, 8, 15], Bin 2: [21, 21, 24], Bin 3: [25, 28, 34]
 
-Membagi range data menjadi bin dengan **lebar yang sama**.
+### Tiga Metode Smoothing
 
-```python
-# 3 bin dengan lebar sama
-bins_equal_width = pd.cut(data, bins=3)
-print("Equal-width bins:")
-print(bins_equal_width.value_counts().sort_index())
-```
+Setelah dibagi ke bin, smoothing mengganti nilai dalam tiap bin untuk mengurangi noise:
 
-Expected output:
-
-```
-Equal-width bins:
-(3.97, 14.0]     2
-(14.0, 24.0]     4
-(24.0, 34.0]     3
-```
-
-> **Catatan**: Equal-width binning sensitif terhadap outlier karena range ditentukan oleh min dan max. Jika ada outlier, bin-bin lain bisa menjadi sangat sempit. Perhatikan juga bahwa bin tengah (14.0, 24.0] berisi 4 data karena ada dua nilai 21 — distribusi per bin tidak selalu merata.
-
-### 4.2 Equal-Frequency (Equal-Depth) Binning
-
-Membagi data sehingga setiap bin memiliki **jumlah data yang (kurang-lebih) sama**.
-
-```python
-# 3 bin dengan frekuensi sama (masing-masing 3 data)
-bins_equal_freq = pd.qcut(data, q=3)
-print("Equal-frequency bins:")
-print(bins_equal_freq.value_counts().sort_index())
-```
-
-Secara manual, dengan 9 data dan 3 bin (depth = 3):
-
-```
-Bin 1: [4, 8, 15]
-Bin 2: [21, 21, 24]
-Bin 3: [25, 28, 34]
-```
-
-### 4.3 Smoothing
-
-Setelah data dibagi ke dalam bin, smoothing mengganti nilai-nilai dalam setiap bin untuk mengurangi noise. Ada tiga metode:
-
-#### Smoothing by Bin Means
-
-Ganti setiap nilai dalam bin dengan **mean** bin tersebut.
-
-```
-Bin 1: [4, 8, 15]  → mean = 9   → [9, 9, 9]
-Bin 2: [21, 21, 24] → mean = 22  → [22, 22, 22]
-Bin 3: [25, 28, 34] → mean = 29  → [29, 29, 29]
-```
-
-#### Smoothing by Bin Medians
-
-Ganti setiap nilai dalam bin dengan **median** bin tersebut.
-
-```
-Bin 1: [4, 8, 15]  → median = 8  → [8, 8, 8]
-Bin 2: [21, 21, 24] → median = 21 → [21, 21, 21]
-Bin 3: [25, 28, 34] → median = 28 → [28, 28, 28]
-```
-
-#### Smoothing by Bin Boundaries
-
-Ganti setiap nilai dengan **batas bin terdekat** (minimum atau maximum bin).
-
-```
-Bin 1: [4, 8, 15]   → boundaries: 4 dan 15
-  4  → 4  (sudah di batas)
-  8  → 4  (|8-4|=4 < |8-15|=7, lebih dekat ke 4)
-  15 → 15 (sudah di batas)
-  Hasil: [4, 4, 15]
-
-Bin 2: [21, 21, 24]  → boundaries: 21 dan 24
-  21 → 21, 21 → 21, 24 → 24
-  Hasil: [21, 21, 24]
-
-Bin 3: [25, 28, 34]  → boundaries: 25 dan 34
-  25 → 25, 28 → 25 (|28-25|=3 < |28-34|=6), 34 → 34
-  Hasil: [25, 25, 34]
-```
-
-### Implementasi Smoothing dengan pandas
-
-```python
-# Equal-frequency binning manual (depth = 3)
-bin_size = 3
-bins = [data.iloc[i:i+bin_size] for i in range(0, len(data), bin_size)]
-
-print("=== Smoothing by Bin Means ===")
-for i, b in enumerate(bins):
-    smoothed = [round(b.mean())] * len(b)
-    print(f"  Bin {i+1}: {b.values.tolist()} -> {smoothed}")
-
-print("\n=== Smoothing by Bin Medians ===")
-for i, b in enumerate(bins):
-    smoothed = [round(b.median())] * len(b)
-    print(f"  Bin {i+1}: {b.values.tolist()} -> {smoothed}")
-
-print("\n=== Smoothing by Bin Boundaries ===")
-for i, b in enumerate(bins):
-    lo, hi = b.min(), b.max()
-    smoothed = [lo if abs(v - lo) <= abs(v - hi) else hi for v in b]
-    print(f"  Bin {i+1}: {b.values.tolist()} -> {smoothed}")
-```
-
-> **Tips**: Smoothing by bin means paling sering digunakan karena menghasilkan rata-rata yang representatif. Smoothing by boundaries mempertahankan variasi ekstrem dalam bin dan lebih jarang digunakan.
+| Metode | Ganti dengan | Contoh Bin [4, 8, 15] | Kelebihan |
+|---|---|---|---|
+| **Bin Means** | Mean bin | → [9, 9, 9] | Representatif, paling sering digunakan |
+| **Bin Medians** | Median bin | → [8, 8, 8] | Robust terhadap outlier dalam bin |
+| **Bin Boundaries** | Batas terdekat (min/max) | → [4, 4, 15] | Mempertahankan batas interval |
 
 ![Binning dan Smoothing](figures/08_binning_smoothing.png)
 
-> **Metode smoothing lain**: Selain binning, **regression** juga bisa digunakan untuk smoothing — data difit ke sebuah fungsi (misalnya garis linear) sehingga noise berkurang. Linear regression memodelkan hubungan dua variabel, sedangkan multiple linear regression melibatkan lebih dari dua variabel (Han et al., 2023). Regression dibahas lebih detail di materi Supervised Learning.
+> **Metode smoothing lain**: **Regression** juga bisa digunakan untuk smoothing — data difit ke fungsi (misal garis linear). Dibahas di materi Supervised Learning.
+
+> **Implementasi lengkap**: Lihat notebook [`praktikum/Data-Cleaning.ipynb`](praktikum/Data-Cleaning.ipynb) Section 7 untuk kode binning dan smoothing.
 
 <details>
 <summary><b>Cek Pemahaman</b>: Apa perbedaan utama antara equal-width dan equal-frequency binning?</summary>
@@ -514,34 +318,10 @@ Setelah outlier terdeteksi, ada beberapa cara menanganinya. Pilihan metode terga
 Ganti nilai outlier dengan **batas atas/bawah** yang ditentukan. Data tidak dihapus, hanya "dipotong" ke batas tertentu.
 
 ```python
-# Capping menggunakan batas IQR
-Q1 = data.quantile(0.25)
-Q3 = data.quantile(0.75)
-IQR = Q3 - Q1
-batas_bawah = Q1 - 1.5 * IQR
-batas_atas = Q3 + 1.5 * IQR
-
-data_capped = data.clip(lower=batas_bawah, upper=batas_atas)
-print("Sebelum:", data.values)
-print("Sesudah:", data_capped.values)
+data_capped = data.clip(lower=Q1 - 1.5*IQR, upper=Q3 + 1.5*IQR)
 ```
 
-Expected output:
-
-```
-Sebelum: [ 15  18  19  20  21  22  22  25  42 100]
-Sesudah: [15.   18.   19.   20.   21.   22.   22.   25.   31.75 31.75]
-```
-
-Alternatif menggunakan `scipy`:
-
-```python
-from scipy.stats.mstats import winsorize
-
-# Winsorize 10% dari kedua sisi
-data_winsorized = winsorize(data, limits=[0.1, 0.1])
-print("Winsorized:", data_winsorized)
-```
+Hasil: nilai 42 dan 100 di-cap menjadi 31.75. Alternatif: `scipy.stats.mstats.winsorize(data, limits=[0.1, 0.1])`.
 
 ### 5.2 Trimming
 
@@ -549,18 +329,11 @@ Hapus data yang berada di luar batas. Jumlah data berkurang, tapi distribusi men
 
 ```python
 data_trimmed = data[(data >= batas_bawah) & (data <= batas_atas)]
-print(f"Sebelum: {len(data)} data -> {data.values}")
-print(f"Sesudah: {len(data_trimmed)} data -> {data_trimmed.values}")
 ```
 
-Expected output:
+Hasil: 10 data → 8 data (42 dan 100 dihapus).
 
-```
-Sebelum: 10 data -> [ 15  18  19  20  21  22  22  25  42 100]
-Sesudah: 8 data -> [15 18 19 20 21 22 22 25]
-```
-
-> **Penting**: Trimming mengurangi ukuran dataset. Jika outlier banyak, trimming bisa menghapus terlalu banyak data dan membuat model kehilangan informasi. Gunakan dengan hati-hati.
+> **Penting**: Trimming mengurangi ukuran dataset. Jika outlier banyak, bisa menghapus terlalu banyak data. Gunakan dengan hati-hati.
 
 ![Perbandingan: Original vs Capping vs Trimming](figures/06_capping_vs_trimming.png)
 
@@ -570,53 +343,16 @@ Transformasi mengubah skala data sehingga distribusi menjadi lebih simetris dan 
 
 #### Log Transformation
 
-Cocok untuk data dengan **right-skewed distribution** (ekor panjang ke kanan, misalnya data pendapatan atau harga).
+Cocok untuk data **right-skewed** (pendapatan, harga). Range 15-100 (selisih 85) → 2.77-4.62 (selisih 1.85).
 
 ```python
-# np.log1p = log(1 + x), aman untuk nilai 0
-data_log = np.log1p(data)
-print("Original:", data.values)
-print("Log(1+x):", np.round(data_log.values, 2))
+data_log = np.log1p(data)  # log(1+x), aman untuk nilai 0
 ```
 
-Expected output:
+#### Square Root dan Box-Cox
 
-```
-Original: [ 15  18  19  20  21  22  22  25  42 100]
-Log(1+x): [2.77 2.94 3.   3.04 3.09 3.14 3.14 3.26 3.76 4.62]
-```
-
-Perhatikan: range data yang tadinya 15-100 (selisih 85) menjadi 2.77-4.62 (selisih 1.85). Outlier 100 masih yang terbesar, tapi jaraknya dengan data lain sudah jauh berkurang.
-
-#### Square Root Transformation
-
-Efek lebih ringan dari log — cocok untuk data yang sedikit skewed.
-
-```python
-data_sqrt = np.sqrt(data)
-print("Original:", data.values)
-print("Sqrt:    ", np.round(data_sqrt.values, 2))
-```
-
-Expected output:
-
-```
-Original: [ 15  18  19  20  21  22  22  25  42 100]
-Sqrt:     [3.87 4.24 4.36 4.47 4.58 4.69 4.69 5.   6.48 10.  ]
-```
-
-#### Box-Cox Transformation
-
-Mencari transformasi **optimal** secara otomatis dengan parameter lambda. Memerlukan semua nilai **positif** (> 0).
-
-```python
-from scipy.stats import boxcox
-
-data_positive = data[data > 0]
-data_boxcox, lmbda = boxcox(data_positive)
-print(f"Lambda optimal: {lmbda:.4f}")
-print("Box-Cox:", np.round(data_boxcox, 2))
-```
+- **Square Root** (`np.sqrt`): efek lebih ringan dari log, cocok untuk data sedikit skewed
+- **Box-Cox** (`scipy.stats.boxcox`): mencari transformasi optimal secara otomatis (memerlukan nilai > 0)
 
 | Transformasi | Kapan Digunakan | Syarat |
 |---|---|---|
@@ -686,23 +422,7 @@ Saat mengevaluasi apakah suatu data perlu dibersihkan, pertimbangkan enam dimens
 
 ## 7. Dampak Cleaning pada Statistik Deskriptif
 
-Untuk memahami pentingnya handling outlier, perhatikan bagaimana statistik deskriptif berubah sebelum dan sesudah cleaning.
-
-```python
-data = pd.Series([15, 18, 19, 20, 21, 22, 22, 25, 42, 100])
-
-# Sebelum cleaning
-print("=== SEBELUM CLEANING ===")
-print(data.describe())
-
-# Sesudah capping (IQR)
-Q1, Q3 = data.quantile(0.25), data.quantile(0.75)
-IQR = Q3 - Q1
-data_clean = data.clip(lower=Q1 - 1.5*IQR, upper=Q3 + 1.5*IQR)
-
-print("\n=== SESUDAH CAPPING ===")
-print(data_clean.describe())
-```
+Perhatikan bagaimana statistik deskriptif berubah sebelum dan sesudah cleaning:
 
 ### Perbandingan Before vs After
 
