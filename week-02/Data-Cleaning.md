@@ -542,11 +542,13 @@ df["col_binned"] = pd.qcut(df["col"], q=5, labels=False)
 
 Gunakan dataset `week2.csv` yang tersedia di folder `praktikum/`.
 
-Lakukan cleaning pada **3 kolom** berikut:
+Lakukan cleaning pada minimal **3 kolom** berikut (boleh lebih):
 
 - `dp aktual` — format tidak konsisten
 - `range dp` — label kategori tidak seragam
 - `tgl mohon` — format tanggal tidak seragam
+
+Selain 3 kolom di atas, kalian juga boleh meng-cleaning kolom lain yang menurut kalian perlu.
 
 **Yang harus dikumpulkan:**
 
