@@ -10,9 +10,13 @@ Disusun oleh asisten dosen: **Danish Rafie Ekaputra** & **Yendra Wijayanto**
 
 > Setup environment, data cleaning (noisy data, outlier), visualisasi multivariat (t-SNE), data integration, transformation, dan reduction.
 
-- **Modul 2: Dimensionality Reduction** Week 4 · Week 5
+- **Modul 2: Dimensionality Reduction** [Week 4](week-04/) · Week 5
 
 > Feature selection dan feature extraction untuk mengurangi dimensi data.
+
+- **Modul 3: Clustering dengan R Shiny** [Week 5](week-05/)
+
+> K-Means dan Hierarchical Clustering dengan dashboard interaktif menggunakan R Shiny.
 
 - **Modul 3: Association Rules** Week 6 · Week 7
 
