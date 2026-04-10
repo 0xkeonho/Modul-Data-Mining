@@ -1,315 +1,321 @@
 #
-# Week-05: Complete Clustering Dashboard
-# File: praktikum/app/app.R
+# Simplified Clustering Dashboard
+# Week-05: Data Mining Practicum
 #
 # Features:
-# - K-Means clustering dengan interactive k selection
-# - Hierarchical clustering dengan dendrogram
-# - Elbow method visualization
-# - Download hasil clustering
+# - Simple layout: sidebar + main panel
+# - Two algorithms: K-Means & Hierarchical
+# - One button to run analysis
+# - Clear visualizations
 #
 
 library(shiny)
-library(bslib)
-library(cluster)
-library(factoextra)
-library(tidyverse)
+library(cluster)      # For clustering algorithms & silhouette
+library(factoextra)   # For visualizations
+library(ggplot2)      # For custom plots (loaded by factoextra but explicit is safer)
 
-# UI Definition
-ui <- page_sidebar(
-  title = "Clustering Analysis Dashboard",
+# ============================================
+# UI DEFINITION
+# ============================================
+ui <- fluidPage(
   
-  # Sidebar dengan controls
-  sidebar = sidebar(
-    title = "Controls",
-    
-    # Dataset selection
-    selectInput("dataset", "Dataset:",
-                choices = c(
-                  "Iris" = "iris",
-                  "US Arrests" = "usarrests"
-                )),
-    
-    hr(),
-    
-    # Algorithm selection
-    radioButtons("algorithm", "Algorithm:",
-                 choices = c("K-Means", "Hierarchical"),
-                 selected = "K-Means"),
-    
-    hr(),
-    
-    # K selection (untuk K-Means)
-    conditionalPanel(
-      condition = "input.algorithm == 'K-Means'",
-      sliderInput("k", "Number of Clusters (k):",
-                  min = 2, max = 8, value = 3),
-      
-      numericInput("nstart", "Random Starts (nstart):",
-                   value = 25, min = 1, max = 100)
-    ),
-    
-    # Linkage method (untuk Hierarchical)
-    conditionalPanel(
-      condition = "input.algorithm == 'Hierarchical'",
-      selectInput("linkage", "Linkage Method:",
-                  choices = c("ward.D2", "complete", "single", "average", "centroid"),
-                  selected = "ward.D2"),
-      
-      sliderInput("hclust_k", "Cut Tree (k clusters):",
-                  min = 2, max = 8, value = 3)
-    ),
-    
-    hr(),
-    
-    # Action button
-    actionButton("run", "Run Clustering",
-                 class = "btn-primary",
-                 style = "width: 100%;"),
-    
-    br(), br(),
-    
-    # Download button (hanya muncul setelah run)
-    uiOutput("download_ui")
-  ),
+  # Page title
+  titlePanel("Clustering Analysis Dashboard"),
   
-  # Main content area dengan multiple cards
-  navset_card_tab(
+  # Layout: sidebar (controls) + main (output)
+  sidebarLayout(
     
-    # Tab 1: Cluster Visualization
-    nav_panel(
-      title = "Cluster Plot",
-      card(
-        full_screen = TRUE,
-        plotOutput("cluster_plot", height = "700px", width = "100%")
-      )
-    ),
-    
-    # Tab 2: Elbow Method (hanya untuk K-Means)
-    nav_panel(
-      title = "Elbow Method",
-      conditionalPanel(
-        condition = "input.algorithm == 'K-Means'",
-        card(
-          full_screen = TRUE,
-          plotOutput("elbow_plot", height = "600px", width = "100%")
+    # ----- SIDEBAR: Controls -----
+    sidebarPanel(
+      
+      # 1. Choose dataset
+      selectInput(
+        inputId = "dataset",
+        label = "Pilih Dataset:",
+        choices = c(
+          "Iris (built-in)" = "iris",
+          "US Arrests (built-in)" = "usarrests"
         )
       ),
+      
+      # Line separator
+      tags$hr(),
+      
+      # 2. Choose algorithm
+      radioButtons(
+        inputId = "algorithm",
+        label = "Pilih Algoritma:",
+        choices = c("K-Means", "Hierarchical"),
+        selected = "K-Means"
+      ),
+      
+      # Line separator
+      tags$hr(),
+      
+      # 3. Number of clusters
+      sliderInput(
+        inputId = "k",
+        label = "Jumlah Cluster (k):",
+        min = 2,
+        max = 6,
+        value = 3
+      ),
+      
+      # 4. Linkage method (only for Hierarchical)
+      # This panel only shows when Hierarchical is selected
       conditionalPanel(
         condition = "input.algorithm == 'Hierarchical'",
-        card(
-          "Elbow Method hanya tersedia untuk K-Means.",
-          "Silakan gunakan Dendrogram untuk Hierarchical Clustering."
+        selectInput(
+          inputId = "linkage",
+          label = "Linkage Method:",
+          choices = c(
+            "Ward (recommended)" = "ward.D2",
+            "Complete" = "complete",
+            "Average" = "average",
+            "Single" = "single"
+          ),
+          selected = "ward.D2"
         )
+      ),
+      
+      # Line separator
+      tags$hr(),
+      
+      # 5. Run button
+      actionButton(
+        inputId = "run",
+        label = "Jalankan Clustering",
+        class = "btn-primary",
+        style = "width: 100%;"
+      ),
+      
+      # Help text
+      tags$br(), tags$br(),
+      helpText(
+        "Petunjuk: Pilih dataset dan algoritma,",
+        "atur jumlah cluster, lalu klik tombol",
+        "di atas untuk melihat hasil."
       )
     ),
     
-    # Tab 3: Statistics
-    nav_panel(
-      title = "Statistics",
-      layout_column_wrap(
-        width = 1/2,
-        card(
-          card_header("Cluster Summary"),
-          tableOutput("cluster_stats")
+    # ----- MAIN PANEL: Output -----
+    mainPanel(
+      
+      # Row 1: Dataset info
+      verbatimTextOutput("info"),
+      tags$br(),
+      
+      # Row 2: Two plots side by side
+      fluidRow(
+        # Left: Cluster plot
+        column(
+          width = 6,
+          h4("Visualisasi Cluster"),
+          plotOutput("cluster_plot", height = "450px")
         ),
-        card(
-          card_header("Cluster Sizes"),
-          tableOutput("cluster_sizes")
+        
+        # Right: Dendrogram or Silhouette
+        column(
+          width = 6,
+          # Dynamic title based on algorithm
+          uiOutput("right_plot_title"),
+          plotOutput("secondary_plot", height = "450px")
         )
-      )
-    ),
-    
-    # Tab 4: Data Preview
-    nav_panel(
-      title = "Data",
-      card(
-        card_header("Dataset Preview"),
-        verbatimTextOutput("data_summary")
-      )
+      ),
+      
+      tags$br(),
+      
+      # Row 3: Simple statistics
+      h4("Statistik Cluster"),
+      tableOutput("stats")
     )
   )
 )
 
-# Server Logic
+# ============================================
+# SERVER LOGIC
+# ============================================
 server <- function(input, output, session) {
   
-  # Reactive: Load dataset
-  data_reactive <- reactive({
+  # ----- Step 1: Load and prepare data -----
+  data_original <- reactive({
+    # Load selected dataset
     switch(input$dataset,
-           "iris" = iris[, -5],  # Remove species column
+           "iris" = iris[, -5],  # Remove species column (5th column)
            "usarrests" = USArrests)
   })
   
-  # Reactive: Scale data (penting untuk clustering!)
+  # Standardize data (important for clustering!)
   data_scaled <- reactive({
-    scale(data_reactive())
+    scale(data_original())
   })
   
-  # Event Reactive: Run clustering saat button ditekan
-  cluster_result <- eventReactive(input$run, {
+  # Show dataset info
+  output$info <- renderPrint({
+    cat("Dataset:", input$dataset, "\n")
+    cat("Jumlah observasi:", nrow(data_original()), "\n")
+    cat("Jumlah variabel:", ncol(data_original()), "\n")
+    cat("Variabel:", paste(names(data_original()), collapse = ", "), "\n")
+  })
+  
+  # Dynamic title for right plot
+  output$right_plot_title <- renderUI({
+    if (input$algorithm == "Hierarchical") {
+      h4("Dendrogram")
+    } else {
+      h4("Silhouette Plot")
+    }
+  })
+  
+  # ----- Step 2: Run clustering when button clicked -----
+  clustering_result <- eventReactive(input$run, {
     
     if (input$algorithm == "K-Means") {
-      # K-Means clustering
-      set.seed(123)  # Untuk reproducibility
-      kmeans(data_scaled(),
-             centers = input$k,
-             nstart = input$nstart,
-             iter.max = 100)
-      
-    } else {
-      # Hierarchical clustering
-      dist_matrix <- dist(data_scaled(), method = "euclidean")
-      hc <- hclust(dist_matrix, method = input$linkage)
+      # Run K-Means
+      set.seed(123)  # For reproducibility
+      result <- kmeans(
+        data_scaled(),
+        centers = input$k,
+        nstart = 25,
+        iter.max = 100
+      )
       
       list(
+        type = "kmeans",
+        result = result,
+        k = input$k
+      )
+      
+    } else {
+      # Run Hierarchical
+      # 1. Calculate distance matrix
+      dist_matrix <- dist(data_scaled(), method = "euclidean")
+      
+      # 2. Run hierarchical clustering
+      hc <- hclust(dist_matrix, method = input$linkage)
+      
+      # 3. Cut tree to get cluster assignments
+      clusters <- cutree(hc, k = input$k)
+      
+      list(
+        type = "hierarchical",
         hc = hc,
-        cluster = cutree(hc, k = input$hclust_k),
-        k = input$hclust_k
+        clusters = clusters,
+        k = input$k
       )
     }
   })
   
-  # Elbow plot untuk K-Means
-  elbow_data <- eventReactive(input$run, {
-    req(input$algorithm == "K-Means")
-    data_scaled()
-  })
+  # ----- Step 3: Create visualizations -----
   
-  # Output: Cluster plot
+  # Main cluster plot (left side)
   output$cluster_plot <- renderPlot({
-    req(cluster_result())
+    # Wait until clustering is run
+    req(clustering_result())
     
-    if (input$algorithm == "K-Means") {
+    result <- clustering_result()
+    
+    if (result$type == "kmeans") {
       # K-Means visualization
-      fviz_cluster(cluster_result(),
-                   data = data_scaled(),
-                   palette = "jco",
-                   ggtheme = theme_minimal(),
-                   main = paste("K-Means Clustering (k =", input$k, ")"),
-                   xlab = "Dimension 1",
-                   ylab = "Dimension 2")
+      fviz_cluster(
+        result$result,
+        data = data_scaled(),
+        palette = "jco",
+        ggtheme = theme_minimal(),
+        main = paste("K-Means (k =", result$k, ")"),
+        xlab = "Dimension 1",
+        ylab = "Dimension 2"
+      )
     } else {
-      # Hierarchical visualization (dendrogram)
-      # Adjust label size based on number of observations
-      n_obs <- nrow(data_scaled())
-      label_cex <- ifelse(n_obs > 30, 0.6, ifelse(n_obs > 20, 0.8, 1.0))
+      # Hierarchical visualization (PCA projection)
+      # Perform PCA for 2D visualization
+      pca <- prcomp(data_scaled())
+      pca_data <- as.data.frame(pca$x[, 1:2])
+      pca_data$cluster <- factor(result$clusters)
       
-      fviz_dend(cluster_result()$hc,
-                k = cluster_result()$k,
-                cex = label_cex,
-                palette = "jco",
-                rect = TRUE,
-                rect_fill = TRUE,
-                rect_border = "jco",
-                horiz = FALSE,
-                main = paste("Hierarchical Clustering -", input$linkage, "linkage (n =", n_obs, ")"),
-                xlab = "Observations",
-                ylab = "Height") +
+      # Plot
+      ggplot(pca_data, aes(x = PC1, y = PC2, color = cluster)) +
+        geom_point(size = 3, alpha = 0.7) +
+        stat_ellipse(level = 0.95) +
+        scale_color_brewer(palette = "Set1") +
         theme_minimal() +
-        theme(
-          plot.title = element_text(size = 16, face = "bold"),
-          axis.text.x = element_text(size = ifelse(n_obs > 25, 8, 12)),
-          axis.title = element_text(size = 14)
+        labs(
+          title = paste("Hierarchical Clustering (k =", result$k, ")"),
+          x = "Principal Component 1",
+          y = "Principal Component 2"
         )
     }
   })
   
-  # Output: Elbow plot
-  output$elbow_plot <- renderPlot({
-    req(elbow_data())
+  # Secondary plot (right side)
+  output$secondary_plot <- renderPlot({
+    req(clustering_result())
     
-    # Calculate WSS untuk k = 1-10
-    fviz_nbclust(data_scaled(),
-                 kmeans,
-                 method = "wss",
-                 k.max = 10,
-                 verbose = FALSE) +
-      labs(title = "Elbow Method untuk Menentukan Optimal k",
-           subtitle = "Pilih k di mana penurunan WSS mulai melambat") +
-      theme_minimal()
+    result <- clustering_result()
+    
+    if (result$type == "kmeans") {
+      # Silhouette plot for K-Means
+      # Calculate silhouette score
+      silhouette_scores <- silhouette(result$result$cluster, dist(data_scaled()))
+      
+      fviz_silhouette(
+        silhouette_scores,
+        palette = "jco",
+        ggtheme = theme_minimal()
+      ) +
+        labs(title = "Silhouette Analysis")
+    } else {
+      # Dendrogram for Hierarchical
+      n_obs <- nrow(data_scaled())
+      # Adjust label size based on number of observations
+      label_size <- ifelse(n_obs > 30, 0.5, ifelse(n_obs > 20, 0.7, 0.9))
+      
+      fviz_dend(
+        result$hc,
+        k = result$k,
+        cex = label_size,
+        palette = "jco",
+        rect = TRUE,
+        rect_fill = TRUE,
+        rect_border = "jco",
+        main = "Dendrogram",
+        xlab = "Observations",
+        ylab = "Height"
+      )
+    }
   })
   
-  # Output: Cluster statistics
-  output$cluster_stats <- renderTable({
-    req(cluster_result())
+  # ----- Step 4: Show statistics -----
+  output$stats <- renderTable({
+    req(clustering_result())
     
-    if (input$algorithm == "K-Means") {
-      result <- cluster_result()
+    result <- clustering_result()
+    
+    if (result$type == "kmeans") {
+      # K-Means stats
       data.frame(
-        Metric = c("Total Within SS", "Between SS", "Total SS", 
-                   "Iterations", "Explained Variance"),
-        Value = c(
-          round(result$tot.withinss, 2),
-          round(result$betweenss, 2),
-          round(result$totss, 2),
-          result$iter,
-          paste0(round(100 * result$betweenss / result$totss, 1), "%")
+        Metrik = c("Jumlah Cluster", "Within SS", "Between SS", 
+                   "Explained Variance"),
+        Nilai = c(
+          result$k,
+          round(result$result$tot.withinss, 2),
+          round(result$result$betweenss, 2),
+          paste0(round(100 * result$result$betweenss / result$result$totss, 1), "%")
         )
       )
     } else {
+      # Hierarchical stats
+      sizes <- table(result$clusters)
       data.frame(
-        Metric = c("Linkage Method", "Number of Clusters", 
-                   "Number of Observations"),
-        Value = c(input$linkage, cluster_result()$k, nrow(data_reactive()))
+        Cluster = paste("Cluster", 1:length(sizes)),
+        Jumlah = as.vector(sizes),
+        Persentase = paste0(round(100 * as.vector(sizes) / sum(sizes), 1), "%")
       )
     }
   })
-  
-  # Output: Cluster sizes
-  output$cluster_sizes <- renderTable({
-    req(cluster_result())
-    
-    if (input$algorithm == "K-Means") {
-      sizes <- cluster_result()$size
-    } else {
-      sizes <- table(cluster_result()$cluster)
-    }
-    
-    data.frame(
-      Cluster = paste("Cluster", 1:length(sizes)),
-      Size = as.vector(sizes),
-      Percentage = paste0(round(100 * as.vector(sizes) / sum(sizes), 1), "%")
-    )
-  })
-  
-  # Output: Data summary
-  output$data_summary <- renderPrint({
-    cat("Dataset:", input$dataset, "\n")
-    cat("Observations:", nrow(data_reactive()), "\n")
-    cat("Variables:", ncol(data_reactive()), "\n\n")
-    cat("Variables:\n")
-    print(names(data_reactive()))
-    cat("\nSummary:\n")
-    print(summary(data_reactive()))
-  })
-  
-  # Dynamic download button
-  output$download_ui <- renderUI({
-    req(cluster_result())
-    downloadButton("download_results", "Download Cluster Results",
-                   style = "width: 100%;")
-  })
-  
-  # Download handler
-  output$download_results <- downloadHandler(
-    filename = function() {
-      paste0(input$dataset, "_", tolower(input$algorithm), "_results.csv")
-    },
-    content = function(file) {
-      # Buat dataframe dengan hasil clustering
-      data <- as.data.frame(data_reactive())
-      
-      if (input$algorithm == "K-Means") {
-        data$Cluster <- cluster_result()$cluster
-      } else {
-        data$Cluster <- cluster_result()$cluster
-      }
-      
-      write.csv(data, file, row.names = FALSE)
-    }
-  )
 }
 
-# Run the application
+# ============================================
+# RUN APP
+# ============================================
 shinyApp(ui = ui, server = server)

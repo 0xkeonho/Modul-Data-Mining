@@ -15,89 +15,128 @@
 
 | File | Deskripsi |
 |------|-----------|
-| [praktikum/app/app.R](praktikum/app/app.R) | Aplikasi Shiny lengkap (K-Means + Hierarchical) |
-| [praktikum/exercises/](praktikum/exercises/) | Latihan incremental (01-05) |
+| [praktikum/app/app.R](praktikum/app/app.R) | **Aplikasi Shiny sederhana** (single page) |
+| [praktikum/app/app-advanced.R](praktikum/app/app-advanced.R) | Versi lengkap dengan tabs (opsional) |
 | [praktikum/dataset/iris.csv](praktikum/dataset/iris.csv) | Dataset Iris |
 | [praktikum/dataset/customer_segmentation.csv](praktikum/dataset/customer_segmentation.csv) | Dataset Customer Segmentation |
 
-## Topik yang Dibahas
+## Struktur Aplikasi Sederhana
 
-### Clustering Theory
+Aplikasi utama (`app.R`) menggunakan layout **satu halaman sederhana**:
 
-1. **Pendahuluan Clustering** - Unsupervised learning, use cases, clustering vs classification
-2. **K-Means Clustering** - Algoritma Lloyd, centroid initialization, convergence
-3. **Determining Optimal Clusters** - Elbow Method, Silhouette Score, Gap Statistic
-4. **Hierarchical Clustering** - Agglomerative, linkage methods, dendrogram interpretation
-5. **Distance Metrics** - Euclidean, Manhattan, Correlation-based
-6. **Preprocessing** - Standardisasi, handling missing values
-7. **Best Practices dan Pitfalls**
+```
+[SIDEBAR - Kontrol]          [MAIN PANEL - Hasil]
+- Pilih Dataset               - Info dataset
+- Pilih Algoritma             - Visualisasi Cluster (kiri)
+- Jumlah Cluster (k)          - Dendrogram/Silhouette (kanan)
+- Linkage (jika Hierarchical) - Tabel statistik
+- [Tombol Run]
+```
 
-### R Shiny Basics
+### Fitur Utama
 
-1. **Struktur Aplikasi Shiny** - UI + Server + shinyApp()
-2. **UI Components** - Input widgets, output containers, layout
-3. **Reactive Programming** - reactive(), eventReactive(), observe()
-4. **Modern UI dengan bslib** - page_sidebar, cards
-5. **Deployment** - shinyapps.io
+1. **Dua Algoritma**:
+   - K-Means: cluster plot + silhouette analysis
+   - Hierarchical: cluster plot + dendrogram
 
-### Praktikum
+2. **Dataset Built-in**:
+   - Iris (4 fitur, 150 observasi)
+   - US Arrests (4 fitur, 50 observasi)
 
-- **Exercise 01**: Basic Shiny App dengan sidebar dan slider
-- **Exercise 02**: Reactive data loading dari file upload
-- **Exercise 03**: K-Means visualization dengan factoextra
-- **Exercise 04**: Hierarchical clustering dengan dendrogram
-- **Exercise 05**: Complete dashboard dengan shinydashboard
+3. **Satu Tombol Action**: Tekan "Jalankan Clustering" untuk melihat hasil
+
+4. **Visualisasi**:
+   - Cluster plot dengan factoextra
+   - Dendrogram (hierarchical) atau Silhouette (k-means)
+   - Statistik cluster sederhana
 
 ## Prerequisites
 
 Install packages R berikut:
 
 ```r
-# Core Shiny
+# Core
 install.packages("shiny")
-install.packages("bslib")
-install.packages("shinydashboard")
-
-# Clustering
 install.packages("cluster")
 install.packages("factoextra")
-
-# Data manipulation & viz
-install.packages("tidyverse")
-install.packages("DT")
-
-# Deployment
-install.packages("rsconnect")
+install.packages("ggplot2")
 ```
-
-## Urutan Belajar
-
-1. **Baca teori** - `Clustering-Theory.md` (K-Means dan Hierarchical)
-2. **Pelajari Shiny** - `R-Shiny-Basics.md` (sampai reactive programming)
-3. **Latihan 01-02** - Dasar-dasar Shiny
-4. **Latihan 03** - Visualisasi K-Means
-5. **Latihan 04** - Hierarchical clustering
-6. **Latihan 05** - Complete dashboard
-7. **Run app lengkap** - `praktikum/app/app.R`
 
 ## Cara Menjalankan
 
-### Latihan Individual
+### Aplikasi Utama (Versi Sederhana)
 ```r
-# Di RStudio, buka file latihan dan klik "Run App"
+# Di RStudio: File → Open → app.R → Run App
 # Atau dari console:
-runApp("praktikum/exercises/01_basic_shiny.R")
+runApp("week-05/praktikum/app")
 ```
 
-### Aplikasi Lengkap
+### Versi Lengkap (Opsional)
+Jika ingin melihat versi dengan multiple tabs dan fitur lengkap:
 ```r
-runApp("praktikum/app")
+runApp("week-05/praktikum/app/app-advanced.R")
 ```
 
-### Deploy ke shinyapps.io
+## Workflow Belajar
+
+1. **Baca teori** - `Clustering-Theory.md`
+2. **Pelajari Shiny** - `R-Shiny-Basics.md` (sampai reactive programming)
+3. **Jalankan aplikasi** - `praktikum/app/app.R`
+4. **Eksperimen**:
+   - Ganti algoritma (K-Means vs Hierarchical)
+   - Ubah jumlah cluster (k)
+   - Coba linkage methods berbeda
+   - Perhatikan perubahan visualisasi
+
+## Tips Penggunaan
+
+### Menggunakan Aplikasi
+1. Pilih dataset dari dropdown
+2. Pilih algoritma (K-Means atau Hierarchical)
+3. Atur jumlah cluster dengan slider
+4. Jika Hierarchical: pilih linkage method
+5. Klik **"Jalankan Clustering"**
+6. Lihat hasil di panel kanan
+
+### Memahami Hasil
+
+**K-Means**:
+- **Cluster Plot**: Titik data dikelompokkan berdasarkan cluster
+- **Silhouette Plot**: Mengukur kualitas cluster (-1 sampai 1, semakin tinggi semakin baik)
+- **Statistik**: Within SS, Between SS, Explained Variance
+
+**Hierarchical**:
+- **Cluster Plot**: Hasil clustering setelah cut tree
+- **Dendrogram**: Tree structure, potong pada height tertentu untuk mendapatkan k cluster
+- **Statistik**: Jumlah data per cluster
+
+## Arsitektur Kode (app.R)
+
+```r
+# 1. Libraries
+library(shiny)
+library(cluster)
+library(factoextra)
+library(ggplot2)
+
+# 2. UI - fluidPage dengan sidebarLayout
+#    Sidebar: inputs (dataset, algorithm, k, linkage)
+#    Main: outputs (info, plots, stats)
+
+# 3. Server
+#    - Reactive: load & scale data
+#    - eventReactive: run clustering saat tombol ditekan
+#    - renderPlot: visualisasi cluster & dendrogram/silhouette
+#    - renderTable: statistik cluster
+
+# 4. shinyApp(ui, server)
+```
+
+## Deployment ke shinyapps.io
+
 ```r
 library(rsconnect)
-rsconnect::deployApp("praktikum/app")
+rsconnect::deployApp("week-05/praktikum/app")
 ```
 
 ---
