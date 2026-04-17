@@ -62,7 +62,7 @@ flowchart LR
     C --> D[Make Recommendations]
     
     subgraph Example
-        E[{roti, mentega}] --> F[{selai}]
+        E["roti, mentega"] --> F["selai"]
     end
     
     style A fill:#e3f2fd
@@ -307,7 +307,7 @@ T3: {I2, I3}         T6: {I2, I3}         T9: {I1, I2, I3}
 
 ```mermaid
 flowchart LR
-    A[Frequent Itemset<br/>{I1, I2, I5}] --> B[Split into<br/>Antecedent & Consequent]
+    A["Frequent Itemset<br/>I1, I2, I5"] --> B[Split into<br/>Antecedent & Consequent]
     B --> C[Calculate Confidence<br/>for each split]
     C --> D{Confidence ≥ min_conf?}
     D -->|Yes| E[Keep Rule]
